@@ -48,7 +48,16 @@ export class BookingsService {
   getBooking(id: number) {
     return this.prisma.booking.findUnique({
       where: { id },
-      include: { owner: true, serviceType: { include: { service: true } }, pets: { include: { pet: true } } },
+      include: {
+        owner: true,
+        serviceType: { include: { service: true } },
+        pets: {
+          include: {
+            pet: true,
+            examinations: { include: { productUsages: true }, orderBy: { createdAt: 'desc' } },
+          },
+        },
+      },
     });
   }
 }

@@ -125,6 +125,34 @@ model BookingPet {
 
   booking   Booking @relation(fields: [bookingId], references: [id])
   pet       Pet     @relation(fields: [petId], references: [id])
+  examinations Examination[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Backend 5: Examinations + Product Usage (awal)
+model Examination {
+  id           Int           @id @default(autoincrement())
+  bookingPetId Int
+  weight       Decimal?      @db.Decimal(5,2)
+  temperature  Decimal?      @db.Decimal(4,1)
+  notes        String?
+
+  bookingPet   BookingPet    @relation(fields: [bookingPetId], references: [id])
+  productUsages ProductUsage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProductUsage {
+  id             Int        @id @default(autoincrement())
+  examinationId  Int
+  productName    String
+  quantity       Decimal    @db.Decimal(12,2)
+
+  examination    Examination @relation(fields: [examinationId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
