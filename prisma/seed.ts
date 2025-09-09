@@ -21,16 +21,41 @@ async function main() {
     create: { userId: user.id, name: 'Admin', role: Role.MANAGER },
   });
 
-  // seed minimal services for future steps (optional, non-breaking)
-  await prisma.$transaction(async (tx) => {
-    const services = ['Vet', 'Grooming', 'Vaksinasi', 'Sterilisasi', 'Rawat Inap', 'Pet Hotel'];
-    for (const name of services) {
-      await tx.$executeRawUnsafe(
-        'INSERT INTO "services" (name) SELECT $1 WHERE NOT EXISTS (SELECT 1 FROM "services" WHERE name = $1);',
-        name,
-      );
+  // Seed Services & ServiceTypes
+  const serviceDefs: Array<{
+    name: string;
+    types?: Array<{ name: string; price: string; pricePerDay?: string | null }>;
+  }> = [
+    { name: 'Vet', types: [{ name: 'Konsultasi', price: '50000' }] },
+    { name: 'Grooming', types: [{ name: 'Grooming Standar', price: '75000' }] },
+    { name: 'Vaksinasi', types: [{ name: 'Vaksin Rabies', price: '90000' }] },
+    { name: 'Sterilisasi', types: [{ name: 'Steril Betina', price: '750000' }, { name: 'Steril Jantan', price: '500000' }] },
+    { name: 'Rawat Inap', types: [{ name: 'Kandang Standar', price: '0', pricePerDay: '75000' }] },
+    { name: 'Pet Hotel', types: [{ name: 'Kamar Reguler', price: '0', pricePerDay: '60000' }] },
+  ];
+
+  for (const s of serviceDefs) {
+    const service = await prisma.service.upsert({
+      where: { name: s.name },
+      update: {},
+      create: { name: s.name },
+    });
+    if (s.types?.length) {
+      for (const t of s.types) {
+        const exists = await prisma.serviceType.findFirst({ where: { serviceId: service.id, name: t.name } });
+        if (!exists) {
+          await prisma.serviceType.create({
+            data: {
+              serviceId: service.id,
+              name: t.name,
+              price: t.price,
+              pricePerDay: t.pricePerDay ?? null,
+            },
+          });
+        }
+      }
     }
-  }).catch(() => undefined);
+  }
 
   // eslint-disable-next-line no-console
   console.log('Seed completed. Admin user:', adminUsername);
