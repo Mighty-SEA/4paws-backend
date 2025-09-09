@@ -9,8 +9,12 @@ export class CatalogService {
     return this.prisma.service.findMany({ orderBy: { name: 'asc' } });
   }
 
-  listServiceTypes() {
-    return this.prisma.serviceType.findMany({ include: { service: true }, orderBy: { id: 'desc' } });
+  listServiceTypes(serviceId?: number) {
+    return this.prisma.serviceType.findMany({
+      where: serviceId ? { serviceId } : undefined,
+      include: { service: true },
+      orderBy: { id: 'desc' },
+    });
   }
 
   async createServiceType(currentRole: string, dto: { serviceId: number; name: string; price: string; pricePerDay?: string | null }) {

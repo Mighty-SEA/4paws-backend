@@ -17,6 +17,14 @@ enum Role {
   CASHIER
 }
 
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
 // Models (initial scope for Backend 1)
 model User {
   id           Int     @id @default(autoincrement())
@@ -48,6 +56,7 @@ model Owner {
   phone     String
   address   String
   pets      Pet[]
+  bookings  Booking[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -61,6 +70,7 @@ model Pet {
   breed     String
   birthdate DateTime
   owner     Owner   @relation(fields: [ownerId], references: [id])
+  bookingPets BookingPet[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -83,6 +93,38 @@ model ServiceType {
   price        Decimal  @db.Decimal(12,2)
   pricePerDay  Decimal? @db.Decimal(12,2)
   service      Service  @relation(fields: [serviceId], references: [id])
+  bookings     Booking[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+// Backend 4: Bookings
+model Booking {
+  id            Int            @id @default(autoincrement())
+  ownerId       Int
+  serviceTypeId Int
+  status        BookingStatus  @default(PENDING)
+  // optional dates for hotel/rawat inap etc.
+  startDate     DateTime? 
+  endDate       DateTime?
+
+  owner         Owner          @relation(fields: [ownerId], references: [id])
+  serviceType   ServiceType    @relation(fields: [serviceTypeId], references: [id])
+  pets          BookingPet[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BookingPet {
+  id        Int     @id @default(autoincrement())
+  bookingId Int
+  petId     Int
+
+  booking   Booking @relation(fields: [bookingId], references: [id])
+  pet       Pet     @relation(fields: [petId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

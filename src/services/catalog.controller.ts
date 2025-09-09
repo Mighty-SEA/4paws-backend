@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { IsInt, IsOptional, IsString } from 'class-validator';
 import { CatalogService } from './catalog.service';
@@ -43,8 +43,9 @@ export class CatalogController {
   }
 
   @Get('service-types')
-  getServiceTypes() {
-    return this.catalog.listServiceTypes();
+  getServiceTypes(@Query('serviceId') serviceId?: string) {
+    const sid = serviceId ? Number(serviceId) : undefined;
+    return this.catalog.listServiceTypes(sid);
   }
 
   @Post('service-types')
