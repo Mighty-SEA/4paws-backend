@@ -1,0 +1,43 @@
+// Datasource & Generator
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum Role {
+  MANAGER
+  DOCTOR
+  PARAVET
+  GROOMER
+  CASHIER
+}
+
+// Models (initial scope for Backend 1)
+model User {
+  id           Int     @id @default(autoincrement())
+  username     String  @unique
+  passwordHash String
+  role         Role
+  staff        Staff?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Staff {
+  id     Int   @id @default(autoincrement())
+  userId Int   @unique
+  name   String
+  role   Role
+  user   User  @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
