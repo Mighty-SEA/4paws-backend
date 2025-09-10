@@ -55,6 +55,7 @@ export class BookingsService {
           include: {
             pet: true,
             examinations: { include: { productUsages: true }, orderBy: { createdAt: 'desc' } },
+            visits: { orderBy: { visitDate: 'desc' } },
           },
         },
       },
