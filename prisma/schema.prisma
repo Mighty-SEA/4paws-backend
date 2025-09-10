@@ -119,6 +119,7 @@ model Booking {
   serviceType   ServiceType    @relation(fields: [serviceTypeId], references: [id])
   pets          BookingPet[]
   deposits      Deposit[]
+  payments      Payment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -133,6 +134,7 @@ model BookingPet {
   pet       Pet     @relation(fields: [petId], references: [id])
   examinations Examination[]
   visits       Visit[]
+  dailyCharges DailyCharge[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -213,6 +215,35 @@ model Deposit {
   amount     Decimal    @db.Decimal(12,2)
   method     String?
   depositDate DateTime  @default(now())
+
+  booking    Booking    @relation(fields: [bookingId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Backend 9: Daily Charges
+model DailyCharge {
+  id           Int        @id @default(autoincrement())
+  bookingPetId Int
+  chargeDate   DateTime   @default(now())
+  amount       Decimal    @db.Decimal(12,2)
+  description  String?
+
+  bookingPet   BookingPet @relation(fields: [bookingPetId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Backend 10: Payments
+model Payment {
+  id         Int        @id @default(autoincrement())
+  bookingId  Int
+  paymentDate DateTime  @default(now())
+  total      Decimal    @db.Decimal(12,2)
+  method     String?
+  invoiceNo  String?
 
   booking    Booking    @relation(fields: [bookingId], references: [id])
 

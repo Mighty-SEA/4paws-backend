@@ -9,10 +9,12 @@ import { BookingsModule } from './bookings/bookings.module';
 import { ExaminationsModule } from './examinations/examinations.module';
 import { ProductsModule } from './products/products.module';
 import { VisitsModule } from './visits/visits.module';
+import { DailyChargesModule } from './daily-charges/daily-charges.module';
+import { BillingModule } from './billing/billing.module';
 import { DepositsModule } from './deposits/deposits.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, OwnersModule, CatalogModule, BookingsModule, ExaminationsModule, ProductsModule, VisitsModule, DepositsModule],
+  imports: [PrismaModule, AuthModule, OwnersModule, CatalogModule, BookingsModule, ExaminationsModule, ProductsModule, VisitsModule, DepositsModule, DailyChargesModule, BillingModule],
   controllers: [AppController],
   providers: [AppService],
 })
