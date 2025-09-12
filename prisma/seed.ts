@@ -1,4 +1,6 @@
 import { PrismaClient, Role } from '@prisma/client';
+import { seedOwnersAndPets } from './seeds/owners-pets';
+import { seedProductsAndMix } from './seeds/products-mix';
 import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -56,6 +58,12 @@ async function main() {
       }
     }
   }
+
+  // Seed Owners & Pets
+  await seedOwnersAndPets(prisma);
+
+  // Seed Products & Mix
+  await seedProductsAndMix(prisma);
 
   // eslint-disable-next-line no-console
   console.log('Seed completed. Admin user:', adminUsername);
