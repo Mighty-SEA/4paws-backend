@@ -12,7 +12,7 @@ export class BillingService {
         serviceType: true,
         pets: {
           include: {
-            visits: true,
+            visits: { include: { productUsages: true, mixUsages: true } },
             examinations: { include: { productUsages: true } },
           },
         },
@@ -36,20 +36,28 @@ export class BillingService {
     // Map product prices for quick lookup
     const products = await this.prisma.product.findMany({ select: { name: true, price: true } });
     const nameToPrice = new Map(products.map((p) => [p.name, Number(p.price)]));
-    const totalProducts = booking.pets.reduce((sum, bp) => {
-      return (
+    const totalExamProducts = booking.pets.reduce(
+      (sum, bp) =>
         sum +
-        bp.examinations.reduce((es, ex) => {
-          return (
-            es +
-            ex.productUsages.reduce((ps, pu) => {
-              const unitPrice = nameToPrice.get(pu.productName) ?? 0;
-              return ps + Number(pu.quantity) * unitPrice;
-            }, 0)
-          );
-        }, 0)
-      );
-    }, 0);
+        bp.examinations.reduce(
+          (es, ex) => es + ex.productUsages.reduce((ps, pu) => ps + Number(pu.quantity) * Number(pu.unitPrice ?? nameToPrice.get(pu.productName) ?? 0), 0),
+          0,
+        ),
+      0,
+    );
+    const totalVisitProducts = booking.pets.reduce(
+      (sum, bp) =>
+        sum +
+        bp.visits.reduce(
+          (vs, v) =>
+            vs +
+            v.productUsages.reduce((ps, pu) => ps + Number(pu.quantity) * Number(pu.unitPrice ?? nameToPrice.get(pu.productName) ?? 0), 0) +
+            v.mixUsages.reduce((ms, mu) => ms + Number(mu.quantity) * Number(mu.unitPrice ?? 0), 0),
+          0,
+        ),
+      0,
+    );
+    const totalProducts = totalExamProducts + totalVisitProducts;
     const total = totalDaily + totalProducts;
     const depositSum = booking.deposits.reduce((s, d) => s + Number(d.amount), 0);
     const amountDue = total - depositSum;

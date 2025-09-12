@@ -159,12 +159,15 @@ model Examination {
 }
 
 model ProductUsage {
-  id             Int        @id @default(autoincrement())
-  examinationId  Int
+  id             Int         @id @default(autoincrement())
+  examinationId  Int?
+  visitId        Int?
   productName    String
-  quantity       Decimal    @db.Decimal(12,2)
+  quantity       Decimal     @db.Decimal(12,2)
+  unitPrice      Decimal?    @db.Decimal(12,2)
 
-  examination    Examination @relation(fields: [examinationId], references: [id])
+  examination    Examination? @relation(fields: [examinationId], references: [id])
+  visit          Visit?       @relation(fields: [visitId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -226,9 +229,12 @@ model MixUsage {
   bookingPetId Int
   mixProductId Int
   quantity     Decimal    @db.Decimal(12,4)
+  visitId      Int?
+  unitPrice    Decimal?   @db.Decimal(12,2)
 
   bookingPet   BookingPet @relation(fields: [bookingPetId], references: [id])
   mixProduct   MixProduct @relation(fields: [mixProductId], references: [id])
+  visit        Visit?     @relation(fields: [visitId], references: [id])
 
   createdAt DateTime @default(now())
 }
@@ -243,6 +249,8 @@ model Visit {
   notes        String?
 
   bookingPet   BookingPet @relation(fields: [bookingPetId], references: [id])
+  productUsages ProductUsage[]
+  mixUsages    MixUsage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -255,6 +263,8 @@ model Deposit {
   amount     Decimal    @db.Decimal(12,2)
   method     String?
   depositDate DateTime  @default(now())
+  estimatedTotal Decimal? @db.Decimal(12,2)
+  estimatedEndDate DateTime?
 
   booking    Booking    @relation(fields: [bookingId], references: [id])
 

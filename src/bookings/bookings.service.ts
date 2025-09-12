@@ -16,7 +16,8 @@ export class BookingsService {
         include: {
           owner: true,
           serviceType: { include: { service: true } },
-          pets: { include: { pet: true } },
+          pets: { include: { pet: true, examinations: true } },
+          deposits: true,
         },
       }),
       this.prisma.booking.count(),
@@ -55,7 +56,13 @@ export class BookingsService {
           include: {
             pet: true,
             examinations: { include: { productUsages: true }, orderBy: { createdAt: 'desc' } },
-            visits: { orderBy: { visitDate: 'desc' } },
+            visits: {
+              orderBy: { visitDate: 'desc' },
+              include: {
+                productUsages: true,
+                mixUsages: { include: { mixProduct: true } },
+              },
+            },
           },
         },
       },

@@ -18,7 +18,11 @@ export class MixController {
   }
 
   @Post('bookings/:bookingId/pets/:bookingPetId/mix-usage')
-  use(@Param('bookingId') bookingId: string, @Param('bookingPetId') bookingPetId: string, @Body() dto: { mixProductId: number; quantity: string }) {
+  use(
+    @Param('bookingId') bookingId: string,
+    @Param('bookingPetId') bookingPetId: string,
+    @Body() dto: { mixProductId: number; quantity: string; visitId?: number },
+  ) {
     return this.mix.useMix(Number(bookingId), Number(bookingPetId), dto);
   }
 }

@@ -7,6 +7,7 @@ type CreateVisitDto = {
   weight?: string;
   temperature?: string;
   notes?: string;
+  products?: { productId?: number; productName?: string; quantity: string }[];
 };
 
 @UseGuards(AuthGuard('jwt'))

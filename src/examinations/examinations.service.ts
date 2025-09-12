@@ -29,7 +29,10 @@ export class ExaminationsService {
           const product = await tx.product.findFirst({ where: { name: p.productName } });
           if (!product) continue;
           const quantity = p.quantity;
-          await tx.productUsage.create({ data: { examinationId: exam.id, productName: product.name, quantity } });
+          await tx.productUsage.create({
+            data: { examinationId: exam.id, productName: product.name, quantity, unitPrice: product.price },
+          });
+          // Pemeriksaan menggunakan unit utama (primary unit)
           await tx.inventory.create({ data: { productId: product.id, quantity: `-${quantity}`, type: 'OUT', note: `Usage exam #${exam.id}` } });
         }
       }

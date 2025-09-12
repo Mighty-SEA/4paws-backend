@@ -21,7 +21,7 @@ export class MixService {
     });
   }
 
-  async useMix(bookingId: number, bookingPetId: number, dto: { mixProductId: number; quantity: string }) {
+  async useMix(bookingId: number, bookingPetId: number, dto: { mixProductId: number; quantity: string; visitId?: number }) {
     const bp = await this.prisma.bookingPet.findFirst({ where: { id: bookingPetId, bookingId } });
     if (!bp) throw new NotFoundException('BookingPet not found');
     const mix = await this.prisma.mixProduct.findUnique({ where: { id: dto.mixProductId }, include: { components: true } });
@@ -30,15 +30,32 @@ export class MixService {
     if (qty <= 0) throw new ForbiddenException('Quantity must be positive');
     return this.prisma.$transaction(async (tx) => {
       // create mix usage audit
-      const mu = await tx.mixUsage.create({ data: { bookingPetId: bp.id, mixProductId: mix.id, quantity: dto.quantity } });
-      // expand to product_usage and inventory OUT
+      const mu = await tx.mixUsage.create({
+        data: {
+          bookingPetId: bp.id,
+          mixProductId: mix.id,
+          quantity: dto.quantity,
+          visitId: dto.visitId ?? undefined,
+          unitPrice: mix.price,
+        },
+      });
+      // expand to inventory OUT (tanpa ProductUsage terikat pemeriksaan/visit)
       for (const comp of mix.components) {
-        const need = (Number(comp.quantityBase) || 0) * qty;
-        if (need <= 0) continue;
+        const needInInnerUnit = (Number(comp.quantityBase) || 0) * qty; // e.g., kapsul/ml/tablet
+        if (needInInnerUnit <= 0) continue;
         const product = await tx.product.findUnique({ where: { id: comp.productId } });
         if (!product) throw new NotFoundException('Component product missing');
-        await tx.productUsage.create({ data: { examinationId: null as any, productName: product.name, quantity: need.toString() } as any });
-        await tx.inventory.create({ data: { productId: product.id, quantity: `-${need}`, type: 'OUT', note: `Mix #${mu.id}` } });
+        // Konversi ke unit utama stok (primary unit). Jika 1 botol = 100 kapsul, 10 kapsul = 0.1 botol
+        const denom = product.unitContentAmount ? Number(product.unitContentAmount) : undefined;
+        const needPrimary = denom && denom > 0 ? needInInnerUnit / denom : needInInnerUnit;
+        await tx.inventory.create({
+          data: {
+            productId: product.id,
+            quantity: `-${needPrimary}`,
+            type: 'OUT',
+            note: `Mix #${mu.id}`,
+          },
+        });
       }
       return { ok: true };
     });
