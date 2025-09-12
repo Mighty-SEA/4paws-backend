@@ -14,9 +14,9 @@ export class VisitsService {
     if (!booking.serviceType.pricePerDay) {
       throw new BadRequestException('Visits hanya diperbolehkan untuk layanan per-hari');
     }
-    // Optional guard: only when booking in progress (proxy for after-deposit)
+    // Jika belum IN_PROGRESS, otomatis transisikan agar visit bisa tersimpan
     if (booking.status !== 'IN_PROGRESS') {
-      throw new BadRequestException('Visits hanya dapat dibuat ketika booking dalam status IN_PROGRESS');
+      await this.prisma.booking.update({ where: { id: bookingId }, data: { status: 'IN_PROGRESS' } });
     }
     return this.prisma.visit.create({
       data: {

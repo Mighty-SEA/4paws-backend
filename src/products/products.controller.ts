@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { AddInventoryDto, CreateProductDto } from './dto';
 import { ProductsService } from './products.service';
@@ -22,6 +22,20 @@ export class ProductsController {
   addInventory(@Req() req: any, @Body() dto: AddInventoryDto) {
     const role: string = req.user?.role;
     return this.products.addInventory(role, dto);
+  }
+
+  @Get('inventory')
+  listInventory(
+    @Query('limit') limit?: string,
+    @Query('types') typesCsv?: string,
+    @Query('productId') productId?: string,
+  ) {
+    const types = typesCsv ? typesCsv.split(',').map((t) => t.trim()).filter(Boolean) : undefined;
+    return this.products.listInventory({
+      limit: limit ? Number(limit) : undefined,
+      types: types as any,
+      productId: productId ? Number(productId) : undefined,
+    });
   }
 
   @Get('inventory/:productId/available')

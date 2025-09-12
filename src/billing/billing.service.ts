@@ -10,13 +10,46 @@ export class BillingService {
       where: { id: bookingId },
       include: {
         serviceType: true,
-        pets: { include: { dailyCharges: true } },
+        pets: {
+          include: {
+            visits: true,
+            examinations: { include: { productUsages: true } },
+          },
+        },
         deposits: true,
       },
     });
     if (!booking) throw new NotFoundException('Booking not found');
-    const totalDaily = booking.pets.reduce((sum, bp) => sum + bp.dailyCharges.reduce((s, c) => s + Number(c.amount), 0), 0);
-    const totalProducts = 0; // product usage pricing belum dihitung di versi ini
+    const pricePerDay = booking.serviceType.pricePerDay ? Number(booking.serviceType.pricePerDay) : 0;
+    const totalDaily = pricePerDay
+      ? booking.pets.reduce((sum, bp) => {
+          const distinctDays = new Set(
+            bp.visits.map((v) => {
+              const d = new Date(v.visitDate);
+              d.setHours(0, 0, 0, 0);
+              return d.toISOString();
+            }),
+          );
+          return sum + distinctDays.size * pricePerDay;
+        }, 0)
+      : 0;
+    // Map product prices for quick lookup
+    const products = await this.prisma.product.findMany({ select: { name: true, price: true } });
+    const nameToPrice = new Map(products.map((p) => [p.name, Number(p.price)]));
+    const totalProducts = booking.pets.reduce((sum, bp) => {
+      return (
+        sum +
+        bp.examinations.reduce((es, ex) => {
+          return (
+            es +
+            ex.productUsages.reduce((ps, pu) => {
+              const unitPrice = nameToPrice.get(pu.productName) ?? 0;
+              return ps + Number(pu.quantity) * unitPrice;
+            }, 0)
+          );
+        }, 0)
+      );
+    }, 0);
     const total = totalDaily + totalProducts;
     const depositSum = booking.deposits.reduce((s, d) => s + Number(d.amount), 0);
     const amountDue = total - depositSum;
@@ -34,10 +67,20 @@ export class BillingService {
       return { status: 'COMPLETED', totalPaid: 0, amountDue: est.amountDue };
     }
     return this.prisma.$transaction(async (tx) => {
-      await tx.payment.create({ data: { bookingId, total: est.amountDue.toString(), method: dto.method } });
+      const invoiceNo = `INV-${bookingId}-${Date.now()}`;
+      await tx.payment.create({ data: { bookingId, total: est.amountDue.toString(), method: dto.method, invoiceNo } });
       await tx.booking.update({ where: { id: bookingId }, data: { status: 'COMPLETED' } });
-      return { status: 'COMPLETED', totalPaid: est.amountDue };
+      return { status: 'COMPLETED', totalPaid: est.amountDue, invoiceNo };
     });
+  }
+
+  async invoice(bookingId: number) {
+    const payment = await this.prisma.payment.findFirst({
+      where: { bookingId },
+      orderBy: { paymentDate: 'desc' },
+    });
+    if (!payment) throw new NotFoundException('Invoice not found');
+    return payment;
   }
 }
 

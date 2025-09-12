@@ -16,6 +16,11 @@ export class BillingController {
   checkout(@Param('bookingId') bookingId: string, @Body() body: { method?: string }) {
     return this.billing.checkout(Number(bookingId), body ?? {});
   }
+
+  @Get('invoice')
+  invoice(@Param('bookingId') bookingId: string) {
+    return this.billing.invoice(Number(bookingId));
+  }
 }
 
 

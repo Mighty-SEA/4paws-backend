@@ -7,6 +7,10 @@ export class CreateProductDto {
   @IsString()
   unit!: string; // e.g., botol, kaplet
 
+  @IsOptional()
+  @IsNumberString()
+  price?: string;
+
   // optional content info, e.g., 100 ml per botol; 20 tablet per kaplet
   @IsOptional()
   @IsNumberString()

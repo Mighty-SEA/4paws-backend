@@ -18,6 +18,11 @@ export class DailyChargesController {
   list(@Param('bookingId') bookingId: string, @Param('bookingPetId') bookingPetId: string) {
     return this.svc.list(Number(bookingId), Number(bookingPetId));
   }
+
+  @Post('generate-today')
+  generateToday(@Param('bookingId') bookingId: string, @Param('bookingPetId') bookingPetId: string) {
+    return this.svc.generateToday(Number(bookingId), Number(bookingPetId));
+  }
 }
 
 
