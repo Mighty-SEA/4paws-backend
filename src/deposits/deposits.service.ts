@@ -20,8 +20,8 @@ export class DepositsService {
         estimatedEndDate: dto.estimatedEndDate ? new Date(dto.estimatedEndDate) : undefined,
       },
     });
-    // Set status IN_PROGRESS bila masih PENDING
-    if (booking.status === 'PENDING' || booking.status === 'CONFIRMED') {
+    // Set status IN_PROGRESS setelah ada deposit pertama
+    if (booking.status !== 'COMPLETED' && booking.status !== 'CANCELLED') {
       await this.prisma.booking.update({ where: { id: bookingId }, data: { status: 'IN_PROGRESS' } });
     }
     return dep;

@@ -68,6 +68,10 @@ export class BookingsService {
       },
     });
   }
+
+  planAdmission(id: number) {
+    return this.prisma.booking.update({ where: { id }, data: { proceedToAdmission: true, status: 'WAITING_TO_DEPOSIT' as any } });
+  }
 }
 
 

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Patch, Query, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { CreateBookingDto } from './dto';
 import { BookingsService } from './bookings.service';
@@ -21,6 +21,11 @@ export class BookingsController {
   @Get()
   list(@Query('page') page?: string, @Query('pageSize') pageSize?: string) {
     return this.bookings.listBookings({ page: page ? Number(page) : undefined, pageSize: pageSize ? Number(pageSize) : undefined });
+  }
+
+  @Patch(':id/plan-admission')
+  planAdmission(@Param('id') id: string) {
+    return this.bookings.planAdmission(Number(id));
   }
 }
 

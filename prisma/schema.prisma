@@ -21,6 +21,7 @@ enum Role {
 enum BookingStatus {
   PENDING
   CONFIRMED
+  WAITING_TO_DEPOSIT
   IN_PROGRESS
   COMPLETED
   CANCELLED
@@ -116,6 +117,7 @@ model Booking {
   // optional dates for hotel/rawat inap etc.
   startDate     DateTime? 
   endDate       DateTime?
+  proceedToAdmission Boolean   @default(false)
 
   owner         Owner          @relation(fields: [ownerId], references: [id])
   serviceType   ServiceType    @relation(fields: [serviceTypeId], references: [id])
