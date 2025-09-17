@@ -1,4 +1,4 @@
-import { IsArray, IsDateString, IsEnum, IsInt, IsOptional } from 'class-validator';
+import { IsArray, IsDateString, IsInt, IsOptional } from 'class-validator';
 
 export class CreateBookingDto {
   @IsInt()
@@ -17,6 +17,12 @@ export class CreateBookingDto {
   @IsOptional()
   @IsDateString()
   endDate?: string;
+}
+
+export class SplitBookingDto {
+  @IsArray()
+  @IsInt({ each: true })
+  petIds!: number[];
 }
 
 

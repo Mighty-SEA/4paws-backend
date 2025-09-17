@@ -72,6 +72,37 @@ export class BookingsService {
   planAdmission(id: number) {
     return this.prisma.booking.update({ where: { id }, data: { proceedToAdmission: true, status: 'WAITING_TO_DEPOSIT' as any } });
   }
+
+  async splitBooking(id: number, petIds: number[]) {
+    if (!Array.isArray(petIds) || petIds.length === 0) {
+      throw new Error('petIds must be a non-empty array');
+    }
+    return this.prisma.$transaction(async (tx) => {
+      const original = await tx.booking.findUnique({ where: { id }, include: { pets: true } });
+      if (!original) throw new Error('Booking not found');
+      const originalPetIds = new Set(original.pets.map((bp) => bp.petId));
+      for (const pid of petIds) {
+        if (!originalPetIds.has(pid)) {
+          throw new Error('One or more petIds do not belong to this booking');
+        }
+      }
+      // Create new booking with same owner/service/dates
+      const newBooking = await tx.booking.create({
+        data: {
+          ownerId: original.ownerId,
+          serviceTypeId: original.serviceTypeId,
+          startDate: original.startDate ?? undefined,
+          endDate: original.endDate ?? undefined,
+        },
+      });
+      // Move selected pets to new booking
+      await tx.bookingPet.updateMany({
+        where: { bookingId: id, petId: { in: petIds } },
+        data: { bookingId: newBooking.id },
+      });
+      return newBooking;
+    });
+  }
 }
 
 

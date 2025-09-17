@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Post, Patch, Query, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { CreateBookingDto } from './dto';
+import { CreateBookingDto, SplitBookingDto } from './dto';
 import { BookingsService } from './bookings.service';
 
 @UseGuards(AuthGuard('jwt'))
@@ -26,6 +26,11 @@ export class BookingsController {
   @Patch(':id/plan-admission')
   planAdmission(@Param('id') id: string) {
     return this.bookings.planAdmission(Number(id));
+  }
+
+  @Post(':id/split')
+  split(@Param('id') id: string, @Body() dto: SplitBookingDto) {
+    return this.bookings.splitBooking(Number(id), dto.petIds);
   }
 }
 
