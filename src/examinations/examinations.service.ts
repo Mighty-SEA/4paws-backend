@@ -8,12 +8,12 @@ export class ExaminationsService {
   async create(bookingId: number, bookingPetId: number, dto: { weight?: string; temperature?: string; notes?: string; products: { productName: string; quantity: string }[] }) {
     const bp = await this.prisma.bookingPet.findFirst({
       where: { id: bookingPetId, bookingId },
-      include: { booking: { include: { serviceType: true, pets: { include: { examinations: true } } } } },
+      include: { booking: { include: { serviceType: true } }, examinations: true },
     });
     if (!bp) throw new NotFoundException('BookingPet not found for given booking');
     const isPerDay = Boolean(bp.booking.serviceType.pricePerDay);
-    // Hanya 1 pemeriksaan per booking (termasuk pra ranap)
-    const alreadyExamined = bp.booking.pets.some((p) => p.examinations.length > 0);
+    // Batasi 1 pemeriksaan per hewan dalam booking ini
+    const alreadyExamined = bp.examinations.length > 0;
     if (alreadyExamined) throw new BadRequestException('Pemeriksaan sudah dilakukan untuk booking ini');
     return this.prisma.$transaction(async (tx) => {
       const exam = await tx.examination.create({

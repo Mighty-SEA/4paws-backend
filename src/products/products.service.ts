@@ -21,8 +21,7 @@ export class ProductsService {
     });
   }
 
-  async addInventory(currentRole: string, dto: { productId: number; quantity: string; type: 'IN' | 'ADJUSTMENT' | 'OUT'; note?: string }) {
-    if (currentRole !== 'MANAGER') throw new ForbiddenException('Only MANAGER can add inventory');
+  async addInventory(_currentRole: string, dto: { productId: number; quantity: string; type: 'IN' | 'ADJUSTMENT' | 'OUT'; note?: string }) {
     return this.prisma.inventory.create({ data: { productId: dto.productId, quantity: dto.quantity, type: dto.type, note: dto.note } });
   }
 

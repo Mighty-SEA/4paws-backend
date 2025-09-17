@@ -1,22 +1,22 @@
-import { IsArray, IsNumberString, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class ProductUsageItemDto {
   @IsString()
   productName!: string;
 
-  @IsNumberString()
-  quantity!: string; // decimal as string
+  @IsString()
+  quantity!: string; // allow decimal string values
 }
 
 export class CreateExaminationDto {
   @IsOptional()
-  @IsNumberString()
-  weight?: string;
+  @IsString()
+  weight?: string; // allow decimal string values
 
   @IsOptional()
-  @IsNumberString()
-  temperature?: string;
+  @IsString()
+  temperature?: string; // allow decimal string values
 
   @IsOptional()
   @IsString()

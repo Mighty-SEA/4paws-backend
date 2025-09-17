@@ -1,16 +1,13 @@
-import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 
 export type AllowedAccountRole = 'MASTER' | 'SUPERVISOR';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private readonly allowed: AllowedAccountRole[]) {}
+  constructor(private readonly _allowed: AllowedAccountRole[]) {}
 
-  canActivate(context: ExecutionContext): boolean {
-    const req = context.switchToHttp().getRequest();
-    const accountRole: AllowedAccountRole | undefined = req.user?.accountRole;
-    if (!accountRole) throw new ForbiddenException('Unauthorized');
-    if (this.allowed.includes(accountRole)) return true;
-    throw new ForbiddenException('Insufficient role');
+  canActivate(_context: ExecutionContext): boolean {
+    // Temporarily allow all roles (disable RBAC)
+    return true;
   }
 }

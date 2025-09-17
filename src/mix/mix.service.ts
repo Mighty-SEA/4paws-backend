@@ -9,8 +9,7 @@ export class MixService {
     return this.prisma.mixProduct.findMany({ include: { components: { include: { product: true } } }, orderBy: { name: 'asc' } });
   }
 
-  async createMix(currentRole: string, dto: { name: string; description?: string; price?: string; components: { productId: number; quantityBase: string }[] }) {
-    if (currentRole !== 'MANAGER') throw new ForbiddenException('Only MANAGER can create mix products');
+  async createMix(_currentRole: string, dto: { name: string; description?: string; price?: string; components: { productId: number; quantityBase: string }[] }) {
     if (!dto.components?.length) throw new ForbiddenException('Components required');
     return this.prisma.$transaction(async (tx) => {
       const mix = await tx.mixProduct.create({ data: { name: dto.name, description: dto.description, price: dto.price ?? '0' } });

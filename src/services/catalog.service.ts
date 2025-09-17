@@ -17,8 +17,7 @@ export class CatalogService {
     });
   }
 
-  async createServiceType(currentRole: string, dto: { serviceId: number; name: string; price: string; pricePerDay?: string | null }) {
-    if (currentRole !== 'MANAGER') throw new ForbiddenException('Only MANAGER can create service types');
+  async createServiceType(_currentRole: string, dto: { serviceId: number; name: string; price: string; pricePerDay?: string | null }) {
     return this.prisma.serviceType.create({
       data: {
         serviceId: dto.serviceId,
@@ -30,11 +29,10 @@ export class CatalogService {
   }
 
   async updateServiceType(
-    currentRole: string,
+    _currentRole: string,
     id: number,
     dto: { name?: string; price?: string; pricePerDay?: string | null },
   ) {
-    if (currentRole !== 'MANAGER') throw new ForbiddenException('Only MANAGER can update service types');
     return this.prisma.serviceType.update({
       where: { id },
       data: {
