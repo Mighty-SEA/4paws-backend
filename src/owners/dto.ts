@@ -1,4 +1,4 @@
-import { IsDateString, IsInt, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsDateString, IsEmail, IsInt, IsOptional, IsString, MinLength } from 'class-validator';
 
 export class CreateOwnerDto {
   @IsString()
@@ -7,6 +7,10 @@ export class CreateOwnerDto {
 
   @IsString()
   phone!: string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
 
   @IsString()
   address!: string;

@@ -65,6 +65,7 @@ model Owner {
   id        Int     @id @default(autoincrement())
   name      String
   phone     String
+  email     String?
   address   String
   pets      Pet[]
   bookings  Booking[]
