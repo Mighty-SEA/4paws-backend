@@ -22,6 +22,15 @@ export class OwnersController {
     return this.owners.listOwners({ q, page: page ? Number(page) : undefined, pageSize: pageSize ? Number(pageSize) : undefined });
   }
 
+  @Get('pets')
+  listPets(
+    @Query('q') q?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+  ) {
+    return this.owners.listPets({ q, page: page ? Number(page) : undefined, pageSize: pageSize ? Number(pageSize) : undefined });
+  }
+
   @Post(':ownerId/pets')
   createPet(
     @Param('ownerId', ParseIntPipe) ownerId: number,
