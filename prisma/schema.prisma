@@ -10,12 +10,15 @@ datasource db {
 }
 
 // Enums
-enum Role {
-  MANAGER
+enum AccountRole {
+  MASTER
+  SUPERVISOR
+}
+
+enum JobRole {
+  SUPERVISOR
   DOCTOR
   PARAVET
-  GROOMER
-  CASHIER
 }
 
 enum BookingStatus {
@@ -38,7 +41,7 @@ model User {
   id           Int     @id @default(autoincrement())
   username     String  @unique
   passwordHash String
-  role         Role
+  accountRole  AccountRole @default(SUPERVISOR)
   staff        Staff?
 
   createdAt DateTime @default(now())
@@ -49,7 +52,7 @@ model Staff {
   id     Int   @id @default(autoincrement())
   userId Int   @unique
   name   String
-  role   Role
+  jobRole JobRole @default(SUPERVISOR)
   user   User  @relation(fields: [userId], references: [id])
 
   createdAt DateTime @default(now())

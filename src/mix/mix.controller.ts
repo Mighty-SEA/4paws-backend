@@ -14,7 +14,7 @@ export class MixController {
 
   @Post('mix-products')
   create(@Req() req: any, @Body() dto: { name: string; description?: string; components: { productId: number; quantityBase: string }[] }) {
-    return this.mix.createMix(req.user?.role, dto);
+    return this.mix.createMix((req.user as any)?.accountRole, dto);
   }
 
   @Post('bookings/:bookingId/pets/:bookingPetId/mix-usage')

@@ -50,14 +50,14 @@ export class CatalogController {
 
   @Post('service-types')
   createServiceType(@Req() req: any, @Body() dto: CreateServiceTypeDto) {
-    const role: string = req.user?.role;
-    return this.catalog.createServiceType(role, dto);
+    const accountRole: string = (req.user as any)?.accountRole;
+    return this.catalog.createServiceType(accountRole, dto);
   }
 
   @Patch('service-types/:id')
   updateServiceType(@Req() req: any, @Param('id') id: string, @Body() dto: UpdateServiceTypeDto) {
-    const role: string = req.user?.role;
-    return this.catalog.updateServiceType(role, Number(id), dto);
+    const accountRole: string = (req.user as any)?.accountRole;
+    return this.catalog.updateServiceType(accountRole, Number(id), dto);
   }
 }
 

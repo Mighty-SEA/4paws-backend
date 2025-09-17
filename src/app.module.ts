@@ -14,9 +14,10 @@ import { BillingModule } from './billing/billing.module';
 import { DepositsModule } from './deposits/deposits.module';
 import { MixModule } from './mix/mix.module';
 import { PaymentsModule } from './payments/payments.module';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, OwnersModule, CatalogModule, BookingsModule, ExaminationsModule, ProductsModule, VisitsModule, DepositsModule, DailyChargesModule, BillingModule, MixModule, PaymentsModule],
+  imports: [PrismaModule, AuthModule, OwnersModule, CatalogModule, BookingsModule, ExaminationsModule, ProductsModule, VisitsModule, DepositsModule, DailyChargesModule, BillingModule, MixModule, PaymentsModule, ReportsModule],
   controllers: [AppController],
   providers: [AppService],
 })

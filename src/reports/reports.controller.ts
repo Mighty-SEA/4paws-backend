@@ -1,0 +1,37 @@
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { ReportsService } from './reports.service';
+import { AuthGuard } from '@nestjs/passport';
+
+@UseGuards(AuthGuard('jwt'))
+@Controller('reports')
+export class ReportsController {
+  constructor(private readonly reportsService: ReportsService) {}
+
+  @Get('product-usage')
+  async getProductUsage(
+    @Query('start') start?: string,
+    @Query('end') end?: string,
+    @Query('groupBy') groupBy: 'day' | 'product' | 'source' | 'service' = 'day',
+    @Query('productId') productId?: string[] | string,
+    @Query('sourceType') sourceType?: string[] | string,
+  ) {
+    const productIds = Array.isArray(productId)
+      ? productId.map((v) => Number(v))
+      : productId
+        ? String(productId)
+            .split(',')
+            .map((v) => Number(v.trim()))
+            .filter((n) => !Number.isNaN(n))
+        : [];
+    const sourceTypes = Array.isArray(sourceType)
+      ? sourceType
+      : sourceType
+        ? String(sourceType)
+            .split(',')
+            .map((v) => v.trim())
+        : [];
+    return this.reportsService.productUsage({ start, end, groupBy, productIds, sourceTypes });
+  }
+}
+
+

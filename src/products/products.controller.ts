@@ -20,8 +20,8 @@ export class ProductsController {
 
   @Post('inventory')
   addInventory(@Req() req: any, @Body() dto: AddInventoryDto) {
-    const role: string = req.user?.role;
-    return this.products.addInventory(role, dto);
+    const accountRole: string = (req.user as any)?.accountRole;
+    return this.products.addInventory(accountRole, dto);
   }
 
   @Get('inventory')

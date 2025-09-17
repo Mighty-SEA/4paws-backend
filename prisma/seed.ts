@@ -1,4 +1,4 @@
-import { PrismaClient, Role } from '@prisma/client';
+import { PrismaClient, AccountRole, JobRole } from '@prisma/client';
 import { seedOwnersAndPets } from './seeds/owners-pets';
 import { seedProductsAndMix } from './seeds/products-mix';
 import * as bcrypt from 'bcryptjs';
@@ -13,14 +13,14 @@ async function main() {
 
   const user = await prisma.user.upsert({
     where: { username: adminUsername },
-    update: { passwordHash, role: Role.MANAGER },
-    create: { username: adminUsername, passwordHash, role: Role.MANAGER },
+    update: { passwordHash, accountRole: AccountRole.MASTER },
+    create: { username: adminUsername, passwordHash, accountRole: AccountRole.MASTER },
   });
 
   await prisma.staff.upsert({
     where: { userId: user.id },
-    update: { name: 'Admin', role: Role.MANAGER },
-    create: { userId: user.id, name: 'Admin', role: Role.MANAGER },
+    update: { name: 'Admin', jobRole: JobRole.SUPERVISOR },
+    create: { userId: user.id, name: 'Admin', jobRole: JobRole.SUPERVISOR },
   });
 
   // Seed Services & ServiceTypes
