@@ -23,8 +23,21 @@ export class BillingService {
     if (!booking) throw new NotFoundException('Booking not found');
     const pricePerDay = booking.serviceType.pricePerDay ? Number(booking.serviceType.pricePerDay) : 0;
     const serviceFlatPrice = booking.serviceType.price ? Number(booking.serviceType.price) : 0;
-    const totalDaily = pricePerDay
-      ? booking.pets.reduce((sum, bp) => {
+    let totalDaily = 0;
+    if (pricePerDay) {
+      const hasRange = booking.startDate && booking.endDate;
+      if (hasRange) {
+        const start = new Date(booking.startDate!);
+        const end = new Date(booking.endDate!);
+        // Normalisasi ke tengah malam untuk perhitungan hari
+        start.setHours(0, 0, 0, 0);
+        end.setHours(0, 0, 0, 0);
+        const msPerDay = 24 * 60 * 60 * 1000;
+        const days = Math.max(0, Math.ceil((end.getTime() - start.getTime()) / msPerDay)); // checkout tidak dihitung
+        totalDaily = days * pricePerDay * booking.pets.length;
+      } else {
+        // Fallback lama: hitung berdasarkan jumlah hari yang memiliki visit
+        totalDaily = booking.pets.reduce((sum, bp) => {
           const distinctDays = new Set(
             bp.visits.map((v) => {
               const d = new Date(v.visitDate);
@@ -33,8 +46,9 @@ export class BillingService {
             }),
           );
           return sum + distinctDays.size * pricePerDay;
-        }, 0)
-      : 0;
+        }, 0);
+      }
+    }
     // Untuk layanan non per-hari (grooming, vaksin, vet, dll),
     // kenakan biaya jasa per hewan yang sudah diperiksa.
     const examinedPetCount = booking.pets.reduce((count, bp) => count + (bp.examinations.length > 0 ? 1 : 0), 0);

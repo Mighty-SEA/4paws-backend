@@ -5,7 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 export class DepositsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(bookingId: number, dto: { amount: string; method?: string; estimatedTotal?: string; estimatedEndDate?: string }) {
+  async create(bookingId: number, dto: { amount: string; method?: string; estimatedTotal?: string; estimatedEndDate?: string; startDate?: string; endDate?: string }) {
     const booking = await this.prisma.booking.findUnique({ where: { id: bookingId }, include: { serviceType: true } });
     if (!booking) throw new NotFoundException('Booking not found');
     if (!booking.serviceType.pricePerDay) {
@@ -20,6 +20,16 @@ export class DepositsService {
         estimatedEndDate: dto.estimatedEndDate ? new Date(dto.estimatedEndDate) : undefined,
       },
     });
+    // Set tanggal check-in/out bila dikirim
+    if (dto.startDate || dto.endDate) {
+      await this.prisma.booking.update({
+        where: { id: bookingId },
+        data: {
+          startDate: dto.startDate ? new Date(dto.startDate) : undefined,
+          endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+        },
+      });
+    }
     // Set status IN_PROGRESS setelah ada deposit pertama
     if (booking.status !== 'COMPLETED' && booking.status !== 'CANCELLED') {
       await this.prisma.booking.update({ where: { id: bookingId }, data: { status: 'IN_PROGRESS' } });
