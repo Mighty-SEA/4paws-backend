@@ -43,6 +43,11 @@ export class OwnersController {
   getOwner(@Param('id', ParseIntPipe) id: number) {
     return this.owners.getOwnerDetail(id);
   }
+
+  @Get('pets/:petId/medical-records')
+  getPetMedicalRecords(@Param('petId', ParseIntPipe) petId: number) {
+    return this.owners.getPetMedicalRecords(petId);
+  }
 }
 
 

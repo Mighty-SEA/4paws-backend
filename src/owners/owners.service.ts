@@ -87,6 +87,21 @@ export class OwnersService {
     if (!owner) throw new NotFoundException('Owner not found');
     return owner;
   }
+
+  async getPetMedicalRecords(petId: number) {
+    const pet = await this.prisma.pet.findUnique({ where: { id: petId }, include: { owner: true } });
+    if (!pet) throw new NotFoundException('Pet not found');
+    const records = await this.prisma.bookingPet.findMany({
+      where: { petId },
+      include: {
+        booking: { include: { serviceType: { include: { service: true } } } },
+        examinations: { include: { productUsages: true }, orderBy: { createdAt: 'desc' } },
+        visits: { include: { productUsages: true, mixUsages: { include: { mixProduct: true } } }, orderBy: { visitDate: 'desc' } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return { pet, records };
+  }
 }
 
 
