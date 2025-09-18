@@ -36,9 +36,8 @@ export class ExaminationsService {
           await tx.inventory.create({ data: { productId: product.id, quantity: `-${quantity}`, type: 'OUT', note: `Usage exam #${exam.id}` } });
         }
       }
-      if (!isPerDay) {
-        await tx.booking.update({ where: { id: bp.booking.id }, data: { status: 'COMPLETED' } });
-      }
+      // Untuk layanan non per-hari: jangan otomatis COMPLETE.
+      // Pembayaran akan menyelesaikan booking melalui billing.checkout.
       return exam;
     });
   }

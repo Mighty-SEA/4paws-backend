@@ -21,6 +21,7 @@ export class BillingService {
     });
     if (!booking) throw new NotFoundException('Booking not found');
     const pricePerDay = booking.serviceType.pricePerDay ? Number(booking.serviceType.pricePerDay) : 0;
+    const serviceFlatPrice = booking.serviceType.price ? Number(booking.serviceType.price) : 0;
     const totalDaily = pricePerDay
       ? booking.pets.reduce((sum, bp) => {
           const distinctDays = new Set(
@@ -33,6 +34,10 @@ export class BillingService {
           return sum + distinctDays.size * pricePerDay;
         }, 0)
       : 0;
+    // Untuk layanan non per-hari (grooming, vaksin, vet, dll),
+    // kenakan biaya jasa per hewan yang sudah diperiksa.
+    const examinedPetCount = booking.pets.reduce((count, bp) => count + (bp.examinations.length > 0 ? 1 : 0), 0);
+    const baseService = pricePerDay ? 0 : examinedPetCount * serviceFlatPrice;
     // Map product prices for quick lookup
     const products = await this.prisma.product.findMany({ select: { name: true, price: true } });
     const nameToPrice = new Map(products.map((p) => [p.name, Number(p.price)]));
@@ -58,10 +63,10 @@ export class BillingService {
       0,
     );
     const totalProducts = totalExamProducts + totalVisitProducts;
-    const total = totalDaily + totalProducts;
+    const total = totalDaily + baseService + totalProducts;
     const depositSum = booking.deposits.reduce((s, d) => s + Number(d.amount), 0);
     const amountDue = total - depositSum;
-    return { totalDaily, totalProducts, total, depositSum, amountDue };
+    return { totalDaily, baseService, totalProducts, total, depositSum, amountDue };
   }
 
   async checkout(bookingId: number, dto: { method?: string }) {
