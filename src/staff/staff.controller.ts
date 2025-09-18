@@ -20,8 +20,8 @@ export class StaffController {
 
   @AllowRoles('MASTER', 'SUPERVISOR')
   @Post()
-  create(@Req() req: any, @Body() body: { name: string; jobRole: string }) {
-    const userId = Number(req.user?.userId);
+  create(@Req() req: any, @Body() body: { userId?: number; name: string; jobRole: string }) {
+    const userId = Number(body.userId ?? req.user?.userId);
     return this.staff.create({ userId, name: String(body.name), jobRole: body.jobRole as any });
   }
 

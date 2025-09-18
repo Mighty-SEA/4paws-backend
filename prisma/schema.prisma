@@ -159,6 +159,10 @@ model Examination {
   weight       Decimal?      @db.Decimal(5,2)
   temperature  Decimal?      @db.Decimal(4,1)
   notes        String?
+  chiefComplaint String?
+  additionalNotes String?
+  diagnosis    String?
+  prognosis    String?
 
   bookingPet   BookingPet    @relation(fields: [bookingPetId], references: [id])
   productUsages ProductUsage[]

@@ -5,7 +5,20 @@ import { PrismaService } from '../prisma/prisma.service';
 export class ExaminationsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(bookingId: number, bookingPetId: number, dto: { weight?: string; temperature?: string; notes?: string; products: { productName: string; quantity: string }[] }) {
+  async create(
+    bookingId: number,
+    bookingPetId: number,
+    dto: {
+      weight?: string;
+      temperature?: string;
+      notes?: string;
+      chiefComplaint?: string;
+      additionalNotes?: string;
+      diagnosis?: string;
+      prognosis?: string;
+      products: { productName: string; quantity: string }[];
+    },
+  ) {
     const bp = await this.prisma.bookingPet.findFirst({
       where: { id: bookingPetId, bookingId },
       include: { booking: { include: { serviceType: true } }, examinations: true },
@@ -22,6 +35,10 @@ export class ExaminationsService {
           weight: dto.weight ? dto.weight : undefined,
           temperature: dto.temperature ? dto.temperature : undefined,
           notes: dto.notes,
+          chiefComplaint: dto.chiefComplaint ?? undefined,
+          additionalNotes: dto.additionalNotes ?? undefined,
+          diagnosis: dto.diagnosis ?? undefined,
+          prognosis: dto.prognosis ?? undefined,
         },
       });
       if (dto.products?.length) {

@@ -22,6 +22,22 @@ export class CreateExaminationDto {
   @IsString()
   notes?: string;
 
+  @IsOptional()
+  @IsString()
+  chiefComplaint?: string;
+
+  @IsOptional()
+  @IsString()
+  additionalNotes?: string;
+
+  @IsOptional()
+  @IsString()
+  diagnosis?: string;
+
+  @IsOptional()
+  @IsString()
+  prognosis?: string;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ProductUsageItemDto)
