@@ -64,6 +64,7 @@ export class BookingsService {
                 doctor: true,
               },
             },
+            mixUsages: { include: { mixProduct: true } },
           },
         },
       },

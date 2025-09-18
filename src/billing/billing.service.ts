@@ -12,8 +12,9 @@ export class BillingService {
         serviceType: true,
         pets: {
           include: {
-            visits: { include: { productUsages: true, mixUsages: true } },
+            visits: { include: { productUsages: true, mixUsages: { include: { mixProduct: true } } } },
             examinations: { include: { productUsages: true } },
+            mixUsages: { where: { visitId: null }, include: { mixProduct: true } },
           },
         },
         deposits: true,
@@ -57,12 +58,16 @@ export class BillingService {
           (vs, v) =>
             vs +
             v.productUsages.reduce((ps, pu) => ps + Number(pu.quantity) * Number(pu.unitPrice ?? nameToPrice.get(pu.productName) ?? 0), 0) +
-            v.mixUsages.reduce((ms, mu) => ms + Number(mu.quantity) * Number(mu.unitPrice ?? 0), 0),
+            v.mixUsages.reduce((ms, mu) => ms + Number(mu.quantity) * Number(mu.unitPrice ?? mu.mixProduct?.price ?? 0), 0),
           0,
         ),
       0,
     );
-    const totalProducts = totalExamProducts + totalVisitProducts;
+    const totalStandaloneMix = booking.pets.reduce(
+      (sum, bp) => sum + bp.mixUsages.reduce((ms, mu) => ms + Number(mu.quantity) * Number(mu.unitPrice ?? mu.mixProduct?.price ?? 0), 0),
+      0,
+    );
+    const totalProducts = totalExamProducts + totalVisitProducts + totalStandaloneMix;
     const total = totalDaily + baseService + totalProducts;
     const depositSum = booking.deposits.reduce((s, d) => s + Number(d.amount), 0);
     const amountDue = total - depositSum;
