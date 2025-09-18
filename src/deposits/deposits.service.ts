@@ -40,6 +40,16 @@ export class DepositsService {
   list(bookingId: number) {
     return this.prisma.deposit.findMany({ where: { bookingId }, orderBy: { depositDate: 'desc' } });
   }
+
+  async update(bookingId: number, id: number, dto: { amount: string; method?: string; estimatedTotal?: string; estimatedEndDate?: string; startDate?: string; endDate?: string }) {
+    const dep = await this.prisma.deposit.findFirst({ where: { id, bookingId } });
+    if (!dep) throw new NotFoundException('Deposit not found');
+    await this.prisma.deposit.update({ where: { id }, data: { amount: dto.amount, method: dto.method ?? null, estimatedTotal: dto.estimatedTotal ?? null, estimatedEndDate: dto.estimatedEndDate ? new Date(dto.estimatedEndDate) : null } });
+    if (dto.startDate || dto.endDate) {
+      await this.prisma.booking.update({ where: { id: bookingId }, data: { startDate: dto.startDate ? new Date(dto.startDate) : undefined, endDate: dto.endDate ? new Date(dto.endDate) : undefined } });
+    }
+    return { ok: true };
+  }
 }
 
 

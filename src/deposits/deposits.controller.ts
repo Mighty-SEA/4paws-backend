@@ -1,8 +1,8 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { DepositsService } from './deposits.service';
 
-type CreateDepositDto = { amount: string; method?: string };
+type CreateDepositDto = { amount: string; method?: string; estimatedTotal?: string; estimatedEndDate?: string; startDate?: string; endDate?: string };
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('bookings/:bookingId/deposits')
@@ -12,6 +12,11 @@ export class DepositsController {
   @Post()
   create(@Param('bookingId') bookingId: string, @Body() dto: CreateDepositDto) {
     return this.deposits.create(Number(bookingId), dto);
+  }
+
+  @Put(':id')
+  update(@Param('bookingId') bookingId: string, @Param('id') id: string, @Body() dto: CreateDepositDto) {
+    return this.deposits.update(Number(bookingId), Number(id), dto);
   }
 
   @Get()
