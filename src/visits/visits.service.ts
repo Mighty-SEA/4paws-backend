@@ -5,7 +5,23 @@ import { PrismaService } from '../prisma/prisma.service';
 export class VisitsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(bookingId: number, bookingPetId: number, dto: { visitDate?: string; weight?: string; temperature?: string; notes?: string; products?: { productId?: number; productName?: string; quantity: string }[] }) {
+  async create(
+    bookingId: number,
+    bookingPetId: number,
+    dto: {
+      visitDate?: string;
+      weight?: string;
+      temperature?: string;
+      notes?: string;
+      products?: { productId?: number; productName?: string; quantity: string }[];
+      doctorId?: number;
+      urine?: string;
+      defecation?: string;
+      appetite?: string;
+      condition?: string;
+      symptoms?: string;
+    },
+  ) {
     const bp = await this.prisma.bookingPet.findFirst({ where: { id: bookingPetId, bookingId } });
     if (!bp) throw new NotFoundException('BookingPet not found for given booking');
     const booking = await this.prisma.booking.findUnique({ where: { id: bookingId }, include: { serviceType: true } });
@@ -26,6 +42,12 @@ export class VisitsService {
           weight: dto.weight ? dto.weight : undefined,
           temperature: dto.temperature ? dto.temperature : undefined,
           notes: dto.notes,
+          doctorId: dto.doctorId ?? undefined,
+          urine: dto.urine ?? undefined,
+          defecation: dto.defecation ?? undefined,
+          appetite: dto.appetite ?? undefined,
+          condition: dto.condition ?? undefined,
+          symptoms: dto.symptoms ?? undefined,
         },
       });
       if (dto.products?.length) {

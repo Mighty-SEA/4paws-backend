@@ -8,6 +8,13 @@ type CreateVisitDto = {
   temperature?: string;
   notes?: string;
   products?: { productId?: number; productName?: string; quantity: string }[];
+  // Satwagia-like extras
+  doctorId?: number;
+  urine?: string;
+  defecation?: string;
+  appetite?: string;
+  condition?: string;
+  symptoms?: string;
 };
 
 @UseGuards(AuthGuard('jwt'))

@@ -55,6 +55,9 @@ model Staff {
   jobRole JobRole @default(SUPERVISOR)
   user   User  @relation(fields: [userId], references: [id])
 
+  // Reverse relation for visits where this staff is the assigned doctor
+  visitsAsDoctor Visit[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -253,8 +256,16 @@ model Visit {
   weight       Decimal?   @db.Decimal(5,2)
   temperature  Decimal?   @db.Decimal(4,1)
   notes        String?
+  // Satwagia-like extra fields
+  doctorId     Int?
+  urine        String?
+  defecation   String?
+  appetite     String?
+  condition    String?
+  symptoms     String?
 
   bookingPet   BookingPet @relation(fields: [bookingPetId], references: [id])
+  doctor       Staff?     @relation(fields: [doctorId], references: [id])
   productUsages ProductUsage[]
   mixUsages    MixUsage[]
 
