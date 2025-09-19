@@ -1,6 +1,6 @@
-import { Body, Controller, Get, Param, Post, Patch, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Patch, Query, Req, UseGuards, Delete } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { CreateBookingDto, SplitBookingDto } from './dto';
+import { CreateBookingDto, SplitBookingDto, CreateBookingItemDto } from './dto';
 import { BookingsService } from './bookings.service';
 
 @UseGuards(AuthGuard('jwt'))
@@ -31,6 +31,22 @@ export class BookingsController {
   @Post(':id/split')
   split(@Param('id') id: string, @Body() dto: SplitBookingDto) {
     return this.bookings.splitBooking(Number(id), dto.petIds);
+  }
+
+  // Booking Items (Addon)
+  @Post(':id/items')
+  addItem(@Param('id') id: string, @Body() dto: CreateBookingItemDto) {
+    return this.bookings.addItem(Number(id), dto);
+  }
+
+  @Patch(':id/items/:itemId')
+  updateItem(@Param('id') id: string, @Param('itemId') itemId: string, @Body() dto: CreateBookingItemDto) {
+    return this.bookings.updateItem(Number(id), Number(itemId), dto);
+  }
+
+  @Delete(':id/items/:itemId')
+  deleteItem(@Param('id') id: string, @Param('itemId') itemId: string) {
+    return this.bookings.deleteItem(Number(id), Number(itemId));
   }
 }
 

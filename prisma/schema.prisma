@@ -30,6 +30,11 @@ enum BookingStatus {
   CANCELLED
 }
 
+enum BookingItemRole {
+  PRIMARY
+  ADDON
+}
+
 enum InventoryType {
   IN
   ADJUSTMENT
@@ -114,6 +119,7 @@ model ServiceType {
   pricePerDay  Decimal? @db.Decimal(12,2)
   service      Service  @relation(fields: [serviceId], references: [id])
   bookings     Booking[]
+  bookingItems BookingItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -136,6 +142,24 @@ model Booking {
   pets          BookingPet[]
   deposits      Deposit[]
   payments      Payment[]
+  items         BookingItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BookingItem {
+  id            Int             @id @default(autoincrement())
+  bookingId     Int
+  serviceTypeId Int
+  role          BookingItemRole @default(ADDON)
+  quantity      Int             @default(1)
+  startDate     DateTime?
+  endDate       DateTime?
+  unitPrice     Decimal?        @db.Decimal(12,2)
+
+  booking       Booking         @relation(fields: [bookingId], references: [id])
+  serviceType   ServiceType     @relation(fields: [serviceTypeId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
