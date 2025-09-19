@@ -15,6 +15,7 @@ export class BillingService {
             visits: { include: { productUsages: true, mixUsages: { include: { mixProduct: true } } } },
             examinations: { include: { productUsages: true } },
             mixUsages: { where: { visitId: null }, include: { mixProduct: true } },
+            dailyCharges: true,
           },
         },
         deposits: true,
@@ -81,11 +82,12 @@ export class BillingService {
       (sum, bp) => sum + bp.mixUsages.reduce((ms, mu) => ms + Number(mu.quantity) * Number(mu.unitPrice ?? mu.mixProduct?.price ?? 0), 0),
       0,
     );
+    const totalDailyCharges = booking.pets.reduce((sum, bp) => sum + bp.dailyCharges.reduce((cs, c) => cs + Number(c.amount ?? 0), 0), 0);
     const totalProducts = totalExamProducts + totalVisitProducts + totalStandaloneMix;
-    const total = totalDaily + baseService + totalProducts;
+    const total = totalDaily + baseService + totalProducts + totalDailyCharges;
     const depositSum = booking.deposits.reduce((s, d) => s + Number(d.amount), 0);
     const amountDue = total - depositSum;
-    return { totalDaily, baseService, totalProducts, total, depositSum, amountDue };
+    return { totalDaily, baseService, totalProducts, totalDailyCharges, total, depositSum, amountDue };
   }
 
   async checkout(bookingId: number, dto: { method?: string }) {
