@@ -106,22 +106,26 @@ export class BillingService {
     );
     const totalDailyCharges = booking.pets.reduce((sum, bp) => sum + bp.dailyCharges.reduce((cs, c) => cs + Number(c.amount ?? 0), 0), 0);
     const totalProducts = totalExamProducts + totalVisitProducts + totalStandaloneMix;
-<<<<<<< HEAD
-    const total = totalDaily + baseService + totalProducts + totalDailyCharges;
+    // Total baru = subtotal jasa (PRIMARY + ADDON) + products + daily charges
+    const total = serviceSubtotal + totalProducts + totalDailyCharges;
     const depositSum = booking.deposits.reduce((s, d) => s + Number(d.amount), 0);
     const amountDue = total - depositSum;
-    return { totalDaily, baseService, totalProducts, totalDailyCharges, total, depositSum, amountDue };
-=======
-    // total lama = totalDaily + baseService + products
-    // total baru = serviceSubtotal + products (karena totalDaily+baseService sudah terwakili di serviceSubtotal)
-    const total = serviceSubtotal + totalProducts;
-    const depositSum = booking.deposits.reduce((s, d) => s + Number(d.amount), 0);
-    const amountDue = total - depositSum;
-    // Backward-compat fields
-    const totalDaily = 0;
-    const baseService = serviceSubtotal;
-    return { serviceSubtotal, totalProducts, total, depositSum, amountDue, totalDaily, baseService };
->>>>>>> 38393860784d0b732262e778bd1c88228a9a31d7
+    // Backward compatibility fields for existing UI
+    // Untuk layanan per-hari, totalDaily diisi biaya PRIMARY per-hari (tanpa addon).
+    // Untuk layanan non per-hari, baseService diisi seluruh subtotal jasa (PRIMARY + ADDON).
+    const isPrimaryPerDay = !!booking.serviceType?.pricePerDay;
+    // Hitung totalDaily legacy berdasarkan implicitPrimary per-hari
+    let legacyTotalDaily = 0;
+    if (implicitPrimary.length && booking.serviceType?.pricePerDay) {
+      const ip = implicitPrimary[0] as any;
+      const unit = ip.unitPrice != null ? Number(ip.unitPrice) : Number(booking.serviceType.pricePerDay ?? 0);
+      const days = calcDays(ip.startDate ?? booking.startDate, ip.endDate ?? booking.endDate);
+      const petFactor = booking.pets.length;
+      legacyTotalDaily = days * unit * petFactor;
+    }
+    const totalDaily = isPrimaryPerDay ? legacyTotalDaily : 0;
+    const baseService = isPrimaryPerDay ? 0 : serviceSubtotal;
+    return { serviceSubtotal, totalProducts, totalDailyCharges, total, depositSum, amountDue, totalDaily, baseService };
   }
 
   async checkout(bookingId: number, dto: { method?: string }) {
