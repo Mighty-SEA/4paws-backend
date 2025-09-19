@@ -15,6 +15,7 @@ export class VisitsService {
       notes?: string;
       products?: { productId?: number; productName?: string; quantity: string }[];
       doctorId?: number;
+      paravetId?: number;
       urine?: string;
       defecation?: string;
       appetite?: string;
@@ -34,6 +35,18 @@ export class VisitsService {
     if (booking.status !== 'IN_PROGRESS') {
       await this.prisma.booking.update({ where: { id: bookingId }, data: { status: 'IN_PROGRESS' } });
     }
+    // Validasi peran jika diisi
+    if (dto.doctorId) {
+      const doc = await this.prisma.staff.findUnique({ where: { id: dto.doctorId } });
+      if (!doc) throw new BadRequestException('Dokter tidak ditemukan');
+      if (doc.jobRole !== 'DOCTOR') throw new BadRequestException('Staff terpilih bukan Dokter');
+    }
+    if (dto.paravetId) {
+      const pv = await this.prisma.staff.findUnique({ where: { id: dto.paravetId } });
+      if (!pv) throw new BadRequestException('Paravet tidak ditemukan');
+      if (pv.jobRole !== 'PARAVET') throw new BadRequestException('Staff terpilih bukan Paravet');
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const visit = await tx.visit.create({
         data: {
@@ -43,6 +56,7 @@ export class VisitsService {
           temperature: dto.temperature ? dto.temperature : undefined,
           notes: dto.notes,
           doctorId: dto.doctorId ?? undefined,
+          paravetId: dto.paravetId ?? undefined,
           urine: dto.urine ?? undefined,
           defecation: dto.defecation ?? undefined,
           appetite: dto.appetite ?? undefined,

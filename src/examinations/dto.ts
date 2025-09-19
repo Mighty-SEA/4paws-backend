@@ -1,4 +1,4 @@
-import { IsArray, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsInt, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class ProductUsageItemDto {
@@ -37,6 +37,16 @@ export class CreateExaminationDto {
   @IsOptional()
   @IsString()
   prognosis?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  doctorId?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  paravetId?: number;
 
   @IsArray()
   @ValidateNested({ each: true })

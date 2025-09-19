@@ -23,10 +23,10 @@ export class UsersController {
   @Post()
   async create(
     @Body()
-    body: { username: string; password: string; accountRole: string },
+    body: { username: string; password: string; accountRole: string; staffId: number },
   ) {
     const passwordHash = await bcrypt.hash(String(body.password), 10);
-    return this.users.create({ username: body.username, passwordHash, accountRole: body.accountRole as any });
+    return this.users.create({ username: body.username, passwordHash, accountRole: body.accountRole as any, staffId: Number(body.staffId) });
   }
 
   @AllowRoles('MASTER', 'SUPERVISOR')

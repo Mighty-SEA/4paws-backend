@@ -10,6 +10,7 @@ type CreateVisitDto = {
   products?: { productId?: number; productName?: string; quantity: string }[];
   // Satwagia-like extras
   doctorId?: number;
+  paravetId?: number;
   urine?: string;
   defecation?: string;
   appetite?: string;

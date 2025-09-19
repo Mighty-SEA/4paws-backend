@@ -16,7 +16,7 @@ export class UsersService {
     return u;
   }
 
-  create(data: { username: string; passwordHash: string; accountRole: AccountRole }) {
+  create(data: { username: string; passwordHash: string; accountRole: AccountRole; staffId: number }) {
     return this.prisma.user.create({ data });
   }
 

@@ -16,12 +16,10 @@ export class StaffService {
     return s;
   }
 
-  async create(data: { userId: number; name: string; jobRole: JobRole }) {
-    const existing = await this.prisma.staff.findUnique({ where: { userId: data.userId } });
-    if (existing) {
-      return this.prisma.staff.update({ where: { id: existing.id }, data: { name: data.name, jobRole: data.jobRole } });
-    }
-    return this.prisma.staff.create({ data });
+  async create(data: { name: string; jobRole: JobRole }) {
+    // Create staff independently; linking is done from User (user.staffId)
+    const { name, jobRole } = data;
+    return this.prisma.staff.create({ data: { name, jobRole } });
   }
 
   update(id: number, data: Partial<{ name: string; jobRole: JobRole }>) {

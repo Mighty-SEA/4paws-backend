@@ -11,17 +11,33 @@ async function main() {
 
   const passwordHash = await bcrypt.hash(adminPassword, 10);
 
-  const user = await prisma.user.upsert({
-    where: { username: adminUsername },
-    update: { passwordHash, accountRole: AccountRole.MASTER },
-    create: { username: adminUsername, passwordHash, accountRole: AccountRole.MASTER },
-  });
-
-  await prisma.staff.upsert({
-    where: { userId: user.id },
-    update: { name: 'Admin', jobRole: JobRole.SUPERVISOR },
-    create: { userId: user.id, name: 'Admin', jobRole: JobRole.SUPERVISOR },
-  });
+  const existingUser = await prisma.user.findUnique({ where: { username: adminUsername } });
+  if (!existingUser) {
+    await prisma.user.create({
+      data: {
+        username: adminUsername,
+        passwordHash,
+        accountRole: AccountRole.MASTER,
+        staff: {
+          create: { name: 'Admin', jobRole: JobRole.SUPERVISOR },
+        },
+      },
+    });
+  } else {
+    await prisma.user.update({
+      where: { id: existingUser.id },
+      data: {
+        passwordHash,
+        accountRole: AccountRole.MASTER,
+      },
+    });
+    // ensure user has staff linked
+    const staff = await prisma.staff.findFirst({ where: { id: existingUser.staffId } });
+    if (!staff) {
+      const s = await prisma.staff.create({ data: { name: 'Admin', jobRole: JobRole.SUPERVISOR } });
+      await prisma.user.update({ where: { id: existingUser.id }, data: { staffId: s.id } });
+    }
+  }
 
   // Seed Services & ServiceTypes
   const serviceDefs: Array<{
