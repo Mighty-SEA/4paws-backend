@@ -10,6 +10,7 @@ export class BillingService {
       where: { id: bookingId },
       include: {
         serviceType: true,
+        items: { include: { serviceType: true } },
         pets: {
           include: {
             visits: { include: { productUsages: true, mixUsages: { include: { mixProduct: true } } } },
@@ -22,38 +23,59 @@ export class BillingService {
       },
     });
     if (!booking) throw new NotFoundException('Booking not found');
-    const pricePerDay = booking.serviceType.pricePerDay ? Number(booking.serviceType.pricePerDay) : 0;
-    const serviceFlatPrice = booking.serviceType.price ? Number(booking.serviceType.price) : 0;
-    let totalDaily = 0;
-    if (pricePerDay) {
-      const hasRange = booking.startDate && booking.endDate;
-      if (hasRange) {
-        const start = new Date(booking.startDate!);
-        const end = new Date(booking.endDate!);
-        // Normalisasi ke tengah malam untuk perhitungan hari
-        start.setHours(0, 0, 0, 0);
-        end.setHours(0, 0, 0, 0);
-        const msPerDay = 24 * 60 * 60 * 1000;
-        const days = Math.max(0, Math.ceil((end.getTime() - start.getTime()) / msPerDay)); // checkout tidak dihitung
-        totalDaily = days * pricePerDay * booking.pets.length;
+    // Hitung biaya jasa dari PRIMARY + ADDON
+    function normalizeDay(date: Date) {
+      const d = new Date(date);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+    function calcDays(start?: Date | null, end?: Date | null) {
+      if (!start || !end) return 0;
+      const s = normalizeDay(start);
+      const e = normalizeDay(end);
+      const msPerDay = 24 * 60 * 60 * 1000;
+      const diff = Math.ceil((e.getTime() - s.getTime()) / msPerDay);
+      return Math.max(0, diff);
+    }
+
+    // Buat array semua item: gabungkan item PRIMARY implisit dari booking.serviceTypeId sebagai fallback
+    const implicitPrimary = booking.serviceTypeId
+      ? [{
+          role: 'PRIMARY' as any,
+          quantity: 1,
+          startDate: booking.startDate,
+          endDate: booking.endDate,
+          unitPrice: null as any,
+          serviceType: booking.serviceType,
+        }]
+      : [];
+    const items = [...implicitPrimary, ...booking.items];
+
+    let serviceSubtotal = 0;
+    for (const it of items) {
+      const qty = Number((it as any).quantity ?? 1);
+      const st = (it as any).serviceType;
+      const perDay = st?.pricePerDay ? Number(st.pricePerDay) : 0;
+      const flat = st?.price ? Number(st.price) : 0;
+      const unit = (it as any).unitPrice != null ? Number((it as any).unitPrice) : (perDay ? perDay : flat);
+      if (perDay) {
+        const s = (it as any).startDate ?? booking.startDate;
+        const e = (it as any).endDate ?? booking.endDate;
+        const days = calcDays(s as any, e as any);
+        // Per item per-hari tidak dikalikan jumlah pets, kecuali ingin meniru perilaku lama pada PRIMARY.
+        // Untuk kompatibilitas: jika item adalah implicitPrimary dan sebelumnya mengalikan pets, pertahankan.
+        const petFactor = st === booking.serviceType && (implicitPrimary.length ? booking.pets.length : 1);
+        serviceSubtotal += days * unit * (petFactor || 1) * qty;
       } else {
-        // Fallback lama: hitung berdasarkan jumlah hari yang memiliki visit
-        totalDaily = booking.pets.reduce((sum, bp) => {
-          const distinctDays = new Set(
-            bp.visits.map((v) => {
-              const d = new Date(v.visitDate);
-              d.setHours(0, 0, 0, 0);
-              return d.toISOString();
-            }),
-          );
-          return sum + distinctDays.size * pricePerDay;
-        }, 0);
+        // non per-hari: bila ingin per-hewan seperti perilaku lama, kalikan jumlah hewan yang diperiksa.
+        if (st === booking.serviceType && !perDay) {
+          const examinedPetCount = booking.pets.reduce((count, bp) => count + (bp.examinations.length > 0 ? 1 : 0), 0);
+          serviceSubtotal += unit * examinedPetCount * qty;
+        } else {
+          serviceSubtotal += unit * qty;
+        }
       }
     }
-    // Untuk layanan non per-hari (grooming, vaksin, vet, dll),
-    // kenakan biaya jasa per hewan yang sudah diperiksa.
-    const examinedPetCount = booking.pets.reduce((count, bp) => count + (bp.examinations.length > 0 ? 1 : 0), 0);
-    const baseService = pricePerDay ? 0 : examinedPetCount * serviceFlatPrice;
     // Map product prices for quick lookup
     const products = await this.prisma.product.findMany({ select: { name: true, price: true } });
     const nameToPrice = new Map(products.map((p) => [p.name, Number(p.price)]));
@@ -84,10 +106,22 @@ export class BillingService {
     );
     const totalDailyCharges = booking.pets.reduce((sum, bp) => sum + bp.dailyCharges.reduce((cs, c) => cs + Number(c.amount ?? 0), 0), 0);
     const totalProducts = totalExamProducts + totalVisitProducts + totalStandaloneMix;
+<<<<<<< HEAD
     const total = totalDaily + baseService + totalProducts + totalDailyCharges;
     const depositSum = booking.deposits.reduce((s, d) => s + Number(d.amount), 0);
     const amountDue = total - depositSum;
     return { totalDaily, baseService, totalProducts, totalDailyCharges, total, depositSum, amountDue };
+=======
+    // total lama = totalDaily + baseService + products
+    // total baru = serviceSubtotal + products (karena totalDaily+baseService sudah terwakili di serviceSubtotal)
+    const total = serviceSubtotal + totalProducts;
+    const depositSum = booking.deposits.reduce((s, d) => s + Number(d.amount), 0);
+    const amountDue = total - depositSum;
+    // Backward-compat fields
+    const totalDaily = 0;
+    const baseService = serviceSubtotal;
+    return { serviceSubtotal, totalProducts, total, depositSum, amountDue, totalDaily, baseService };
+>>>>>>> 38393860784d0b732262e778bd1c88228a9a31d7
   }
 
   async checkout(bookingId: number, dto: { method?: string }) {

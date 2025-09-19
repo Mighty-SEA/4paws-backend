@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { BookingItemRole } from '@prisma/client';
 
 @Injectable()
 export class BookingsService {
@@ -52,6 +53,7 @@ export class BookingsService {
       include: {
         owner: true,
         serviceType: { include: { service: true } },
+        items: { include: { serviceType: { include: { service: true } } } },
         pets: {
           include: {
             pet: true,
@@ -104,6 +106,50 @@ export class BookingsService {
       });
       return newBooking;
     });
+  }
+
+  // Booking Items (Addon)
+  async addItem(bookingId: number, dto: { serviceTypeId: number; role?: BookingItemRole; quantity?: number; startDate?: string; endDate?: string; unitPrice?: number }) {
+    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId } });
+    if (!booking) throw new NotFoundException('Booking not found');
+    const startDate = dto.startDate ? new Date(dto.startDate) : undefined;
+    const endDate = dto.endDate ? new Date(dto.endDate) : undefined;
+    return this.prisma.bookingItem.create({
+      data: {
+        bookingId,
+        serviceTypeId: dto.serviceTypeId,
+        role: dto.role ?? 'ADDON',
+        quantity: dto.quantity ?? 1,
+        startDate,
+        endDate,
+        unitPrice: dto.unitPrice != null ? dto.unitPrice.toString() : undefined,
+      },
+    });
+  }
+
+  async updateItem(bookingId: number, itemId: number, dto: { serviceTypeId?: number; role?: BookingItemRole; quantity?: number; startDate?: string; endDate?: string; unitPrice?: number }) {
+    const item = await this.prisma.bookingItem.findFirst({ where: { id: itemId, bookingId } });
+    if (!item) throw new NotFoundException('Item not found');
+    const startDate = dto.startDate ? new Date(dto.startDate) : undefined;
+    const endDate = dto.endDate ? new Date(dto.endDate) : undefined;
+    return this.prisma.bookingItem.update({
+      where: { id: itemId },
+      data: {
+        serviceTypeId: dto.serviceTypeId ?? undefined,
+        role: dto.role ?? undefined,
+        quantity: dto.quantity ?? undefined,
+        startDate,
+        endDate,
+        unitPrice: dto.unitPrice != null ? dto.unitPrice.toString() : undefined,
+      },
+    });
+  }
+
+  async deleteItem(bookingId: number, itemId: number) {
+    const item = await this.prisma.bookingItem.findFirst({ where: { id: itemId, bookingId } });
+    if (!item) throw new NotFoundException('Item not found');
+    await this.prisma.bookingItem.delete({ where: { id: itemId } });
+    return { ok: true };
   }
 }
 
