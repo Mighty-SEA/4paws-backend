@@ -9,6 +9,16 @@ type ProductUsageQuery = {
   sourceTypes?: string[]; // visit|exam|mix
 };
 
+type HandlingQuery = {
+  start?: string;
+  end?: string;
+  staffId?: number;
+  role?: 'DOCTOR' | 'PARAVET' | 'ALL';
+  page?: number;
+  pageSize?: number;
+  sort?: 'asc' | 'desc';
+};
+
 @Injectable()
 export class ReportsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -115,6 +125,131 @@ export class ReportsService {
     if (!productIds.length) return [];
     const products = await this.prisma.product.findMany({ where: { id: { in: productIds } } });
     return products.map((p) => p.name);
+  }
+
+  async handling(params: HandlingQuery) {
+    const {
+      start,
+      end,
+      staffId,
+      role = 'ALL',
+      page = 1,
+      pageSize = 20,
+      sort = 'desc',
+    } = params;
+
+    const startDate = start ? new Date(start) : undefined;
+    const endDate = end ? new Date(end) : undefined;
+
+    const examWhere: any = { AND: [] };
+    if (startDate) examWhere.AND.push({ createdAt: { gte: startDate } });
+    if (endDate) examWhere.AND.push({ createdAt: { lte: new Date(new Date(endDate).getTime() + 24 * 60 * 60 * 1000 - 1) } });
+    if (staffId) {
+      if (role === 'DOCTOR') {
+        examWhere.AND.push({ doctorId: staffId });
+      } else if (role === 'PARAVET') {
+        examWhere.AND.push({ paravetId: staffId });
+      } else {
+        examWhere.AND.push({ OR: [{ doctorId: staffId }, { paravetId: staffId }] });
+      }
+    }
+
+    const visitWhere: any = { AND: [] };
+    if (startDate) visitWhere.AND.push({ visitDate: { gte: startDate } });
+    if (endDate) visitWhere.AND.push({ visitDate: { lte: new Date(new Date(endDate).getTime() + 24 * 60 * 60 * 1000 - 1) } });
+    if (staffId) {
+      if (role === 'DOCTOR') {
+        visitWhere.AND.push({ doctorId: staffId });
+      } else if (role === 'PARAVET') {
+        visitWhere.AND.push({ paravetId: staffId });
+      } else {
+        visitWhere.AND.push({ OR: [{ doctorId: staffId }, { paravetId: staffId }] });
+      }
+    }
+
+    const [exams, visits] = await Promise.all([
+      this.prisma.examination.findMany({
+        where: examWhere.AND.length ? examWhere : undefined,
+        include: {
+          bookingPet: {
+            include: { booking: { include: { owner: true, serviceType: { include: { service: true } } } }, pet: true },
+          },
+          doctor: true,
+          paravet: true,
+        },
+      } as any),
+      this.prisma.visit.findMany({
+        where: visitWhere.AND.length ? visitWhere : undefined,
+        include: {
+          bookingPet: {
+            include: { booking: { include: { owner: true, serviceType: { include: { service: true } } } }, pet: true },
+          },
+          doctor: true,
+          paravet: true,
+        },
+      } as any),
+    ]);
+
+    type HandlingItem = {
+      date: string;
+      type: 'EXAM' | 'VISIT';
+      bookingId?: number;
+      bookingPetId?: number;
+      ownerName?: string;
+      petName?: string;
+      serviceName?: string;
+      doctorName?: string;
+      paravetName?: string;
+      detail?: string;
+    };
+
+    const examItems: HandlingItem[] = (exams as any[]).map((e) => {
+      const bp = e.bookingPet as any;
+      const booking = bp?.booking as any;
+      return {
+        date: (e.createdAt as Date)?.toISOString?.().slice(0, 19) ?? new Date().toISOString().slice(0, 19),
+        type: 'EXAM',
+        bookingId: booking?.id ?? bp?.bookingId,
+        bookingPetId: bp?.id,
+        ownerName: booking?.owner?.name,
+        petName: bp?.pet?.name,
+        serviceName: booking?.serviceType?.name,
+        doctorName: e.doctor?.name,
+        paravetName: e.paravet?.name,
+        detail: e.diagnosis ?? e.notes ?? undefined,
+      };
+    });
+
+    const visitItems: HandlingItem[] = (visits as any[]).map((v) => {
+      const bp = v.bookingPet as any;
+      const booking = bp?.booking as any;
+      return {
+        date: (v.visitDate as Date)?.toISOString?.().slice(0, 19) ?? new Date().toISOString().slice(0, 19),
+        type: 'VISIT',
+        bookingId: booking?.id ?? bp?.bookingId,
+        bookingPetId: bp?.id,
+        ownerName: booking?.owner?.name,
+        petName: bp?.pet?.name,
+        serviceName: booking?.serviceType?.name,
+        doctorName: v.doctor?.name,
+        paravetName: v.paravet?.name,
+        detail: v.notes ?? undefined,
+      };
+    });
+
+    let merged: HandlingItem[] = [...examItems, ...visitItems];
+
+    // If role specified without staffId, optionally filter to items that have that role filled
+    if (!staffId && role === 'DOCTOR') merged = merged.filter((r) => r.doctorName);
+    if (!staffId && role === 'PARAVET') merged = merged.filter((r) => r.paravetName);
+
+    merged.sort((a, b) => (sort === 'asc' ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date)));
+    const total = merged.length;
+    const startIdx = (Math.max(1, page) - 1) * Math.max(1, pageSize);
+    const endIdx = startIdx + Math.max(1, pageSize);
+    const items = merged.slice(startIdx, endIdx);
+
+    return { items, total, page, pageSize };
   }
 }
 

@@ -32,6 +32,27 @@ export class ReportsController {
         : [];
     return this.reportsService.productUsage({ start, end, groupBy, productIds, sourceTypes });
   }
+
+  @Get('handling')
+  async getHandling(
+    @Query('start') start?: string,
+    @Query('end') end?: string,
+    @Query('staffId') staffId?: string,
+    @Query('role') role?: 'DOCTOR' | 'PARAVET' | 'ALL',
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
+    @Query('sort') sort?: 'asc' | 'desc',
+  ) {
+    return this.reportsService.handling({
+      start,
+      end,
+      staffId: staffId ? Number(staffId) : undefined,
+      role: role ?? 'ALL',
+      page: page ? Number(page) : 1,
+      pageSize: pageSize ? Number(pageSize) : 20,
+      sort: sort ?? 'desc',
+    });
+  }
 }
 
 
