@@ -45,6 +45,7 @@ model User {
   // Every user must be a staff
   staffId      Int   @unique
   staff        Staff @relation(fields: [staffId], references: [id])
+  drafts       Draft[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -331,6 +332,18 @@ model Payment {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Drafts storage per user & scope
+model Draft {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  scope     String
+  data      Json
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([userId, scope])
 }
 
 
