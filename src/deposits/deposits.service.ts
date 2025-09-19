@@ -5,7 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 export class DepositsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(bookingId: number, dto: { amount: string; method?: string; estimatedTotal?: string; estimatedEndDate?: string; startDate?: string; endDate?: string }) {
+  async create(bookingId: number, dto: { amount: string; method?: string; estimatedTotal?: string; startDate?: string; endDate?: string }) {
     const booking = await this.prisma.booking.findUnique({ where: { id: bookingId }, include: { serviceType: true } });
     if (!booking) throw new NotFoundException('Booking not found');
     if (!booking.serviceType.pricePerDay) {
@@ -17,7 +17,6 @@ export class DepositsService {
         amount: dto.amount,
         method: dto.method,
         estimatedTotal: dto.estimatedTotal ?? undefined,
-        estimatedEndDate: dto.estimatedEndDate ? new Date(dto.estimatedEndDate) : undefined,
       },
     });
     // Set tanggal check-in/out bila dikirim
@@ -41,10 +40,10 @@ export class DepositsService {
     return this.prisma.deposit.findMany({ where: { bookingId }, orderBy: { depositDate: 'desc' } });
   }
 
-  async update(bookingId: number, id: number, dto: { amount: string; method?: string; estimatedTotal?: string; estimatedEndDate?: string; startDate?: string; endDate?: string }) {
+  async update(bookingId: number, id: number, dto: { amount: string; method?: string; estimatedTotal?: string; startDate?: string; endDate?: string }) {
     const dep = await this.prisma.deposit.findFirst({ where: { id, bookingId } });
     if (!dep) throw new NotFoundException('Deposit not found');
-    await this.prisma.deposit.update({ where: { id }, data: { amount: dto.amount, method: dto.method ?? null, estimatedTotal: dto.estimatedTotal ?? null, estimatedEndDate: dto.estimatedEndDate ? new Date(dto.estimatedEndDate) : null } });
+    await this.prisma.deposit.update({ where: { id }, data: { amount: dto.amount, method: dto.method ?? null, estimatedTotal: dto.estimatedTotal ?? null } });
     if (dto.startDate || dto.endDate) {
       await this.prisma.booking.update({ where: { id: bookingId }, data: { startDate: dto.startDate ? new Date(dto.startDate) : undefined, endDate: dto.endDate ? new Date(dto.endDate) : undefined } });
     }

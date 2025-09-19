@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, Post, Put, UseGuards } from '@nestjs/comm
 import { AuthGuard } from '@nestjs/passport';
 import { DepositsService } from './deposits.service';
 
-type CreateDepositDto = { amount: string; method?: string; estimatedTotal?: string; estimatedEndDate?: string; startDate?: string; endDate?: string };
+type CreateDepositDto = { amount: string; method?: string; estimatedTotal?: string; startDate?: string; endDate?: string };
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('bookings/:bookingId/deposits')
