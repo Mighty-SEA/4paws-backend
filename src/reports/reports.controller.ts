@@ -53,6 +53,17 @@ export class ReportsController {
       sort: sort ?? 'desc',
     });
   }
+
+  @Get('revenue')
+  async getRevenue(
+    @Query('start') start?: string,
+    @Query('end') end?: string,
+  ) {
+    return this.reportsService.revenue({
+      start,
+      end,
+    });
+  }
 }
 
 

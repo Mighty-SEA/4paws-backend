@@ -19,6 +19,11 @@ type HandlingQuery = {
   sort?: 'asc' | 'desc';
 };
 
+type RevenueQuery = {
+  start?: string;
+  end?: string;
+};
+
 @Injectable()
 export class ReportsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -250,6 +255,55 @@ export class ReportsService {
     const items = merged.slice(startIdx, endIdx);
 
     return { items, total, page, pageSize };
+  }
+
+  async revenue(params: RevenueQuery) {
+    const { start, end } = params;
+
+    const startDate = start ? new Date(start) : undefined;
+    const endDate = end ? new Date(end) : undefined;
+
+    // Fetch all payments that have been made (completed payments)
+    const payments = await this.prisma.payment.findMany({
+      where: {
+        AND: [
+          startDate ? { createdAt: { gte: startDate } } : {},
+          endDate ? { createdAt: { lte: new Date(new Date(endDate).getTime() + 24 * 60 * 60 * 1000 - 1) } } : {},
+        ],
+      },
+      include: {
+        booking: {
+          include: {
+            owner: true,
+            serviceType: { include: { service: true } },
+            items: { include: { serviceType: { include: { service: true } } } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Transform payments to revenue data
+    const revenueData = payments.map((payment) => {
+      const booking = payment.booking as any;
+      const primaryService = booking.items?.find((item: any) => item.role === 'PRIMARY')?.serviceType || booking.serviceType;
+      
+      return {
+        id: payment.id,
+        date: payment.createdAt.toISOString().slice(0, 10),
+        bookingId: booking.id,
+        ownerName: booking.owner?.name,
+        serviceName: primaryService?.service?.name || 'Unknown Service',
+        serviceTypeName: primaryService?.name || 'Unknown Type',
+        method: payment.method || 'Unknown',
+        amount: Number(payment.total),
+        status: 'PAID',
+        invoiceNo: payment.invoiceNo,
+      };
+    });
+
+    // Always return individual payment records (like payments page)
+    return revenueData;
   }
 }
 
