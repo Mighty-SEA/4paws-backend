@@ -1,25 +1,30 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { MixService } from '../mix/mix.service';
 
 @Injectable()
 export class ExaminationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mixService: MixService,
+  ) {}
 
   async create(
     bookingId: number,
     bookingPetId: number,
-    dto: {
-      weight?: string;
-      temperature?: string;
-      notes?: string;
-      chiefComplaint?: string;
-      additionalNotes?: string;
-      diagnosis?: string;
-      prognosis?: string;
-      products: { productName: string; quantity: string }[];
-      doctorId?: number;
-      paravetId?: number;
-    },
+      dto: {
+        weight?: string;
+        temperature?: string;
+        notes?: string;
+        chiefComplaint?: string;
+        additionalNotes?: string;
+        diagnosis?: string;
+        prognosis?: string;
+        products: { productName: string; quantity: string }[];
+        quickMix?: { mixName: string; components: { productId: number; quantity: string }[] }[];
+        doctorId?: number;
+        paravetId?: number;
+      },
   ) {
     const bp = await this.prisma.bookingPet.findFirst({
       where: { id: bookingPetId, bookingId },
@@ -71,6 +76,40 @@ export class ExaminationsService {
       }
       return exam;
     });
+  }
+
+  async createWithQuickMix(
+    bookingId: number,
+    bookingPetId: number,
+    dto: {
+      weight?: string;
+      temperature?: string;
+      notes?: string;
+      chiefComplaint?: string;
+      additionalNotes?: string;
+      diagnosis?: string;
+      prognosis?: string;
+      products: { productName: string; quantity: string }[];
+      quickMix?: { mixName: string; components: { productId: number; quantity: string }[] }[];
+      doctorId?: number;
+      paravetId?: number;
+    },
+  ) {
+    // Create examination first
+    const exam = await this.create(bookingId, bookingPetId, dto);
+
+    // Handle quick mix after examination is created
+    if (dto.quickMix?.length) {
+      for (const mix of dto.quickMix) {
+        await this.mixService.createQuickMix(bookingId, bookingPetId, {
+          mixName: mix.mixName,
+          components: mix.components,
+          examinationId: exam.id,
+        });
+      }
+    }
+
+    return exam;
   }
 }
 

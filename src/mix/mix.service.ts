@@ -59,6 +59,84 @@ export class MixService {
       return { ok: true };
     });
   }
+
+  async createQuickMix(
+    bookingId: number,
+    bookingPetId: number,
+    dto: {
+      mixName: string;
+      components: { productId: number; quantity: string }[];
+      visitId?: number;
+      examinationId?: number;
+    }
+  ) {
+    const bp = await this.prisma.bookingPet.findFirst({ where: { id: bookingPetId, bookingId } });
+    if (!bp) throw new NotFoundException('BookingPet not found');
+    if (!dto.components?.length) throw new ForbiddenException('Components required');
+
+    return this.prisma.$transaction(async (tx) => {
+      // Create temporary mix product (tidak disimpan sebagai template)
+      const tempMix = await tx.mixProduct.create({
+        data: {
+          name: dto.mixName || `Quick Mix - ${new Date().toISOString().slice(0, 10)}`,
+          description: 'Quick Mix - Temporary',
+          price: '0',
+        },
+      });
+
+      // Create mix components
+      await tx.mixComponent.createMany({
+        data: dto.components.map((c) => ({
+          mixProductId: tempMix.id,
+          productId: c.productId,
+          quantityBase: c.quantity,
+        })),
+      });
+
+      // Create mix usage audit
+      const mu = await tx.mixUsage.create({
+        data: {
+          bookingPetId: bp.id,
+          mixProductId: tempMix.id,
+          quantity: '1', // Quick mix always uses quantity 1
+          visitId: dto.visitId ?? undefined,
+          unitPrice: '0',
+        },
+      });
+
+      // Expand to inventory OUT and ProductUsage
+      for (const comp of dto.components) {
+        const product = await tx.product.findUnique({ where: { id: comp.productId } });
+        if (!product) throw new NotFoundException('Component product missing');
+
+        const quantity = Number(comp.quantity);
+        if (quantity <= 0) continue;
+
+        // Create ProductUsage record
+        await tx.productUsage.create({
+          data: {
+            visitId: dto.visitId ?? undefined,
+            examinationId: dto.examinationId ?? undefined,
+            productName: product.name,
+            quantity: comp.quantity,
+            unitPrice: product.price,
+          },
+        });
+
+        // Create inventory OUT record
+        await tx.inventory.create({
+          data: {
+            productId: product.id,
+            quantity: `-${comp.quantity}`,
+            type: 'OUT',
+            note: `Quick Mix #${mu.id}`,
+          },
+        });
+      }
+
+      return { ok: true, mixId: tempMix.id };
+    });
+  }
 }
 
 

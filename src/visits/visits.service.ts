@@ -1,27 +1,32 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { MixService } from '../mix/mix.service';
 
 @Injectable()
 export class VisitsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mixService: MixService,
+  ) {}
 
   async create(
     bookingId: number,
     bookingPetId: number,
-    dto: {
-      visitDate?: string;
-      weight?: string;
-      temperature?: string;
-      notes?: string;
-      products?: { productId?: number; productName?: string; quantity: string }[];
-      doctorId?: number;
-      paravetId?: number;
-      urine?: string;
-      defecation?: string;
-      appetite?: string;
-      condition?: string;
-      symptoms?: string;
-    },
+      dto: {
+        visitDate?: string;
+        weight?: string;
+        temperature?: string;
+        notes?: string;
+        products?: { productId?: number; productName?: string; quantity: string }[];
+        quickMix?: { mixName: string; components: { productId: number; quantity: string }[] }[];
+        doctorId?: number;
+        paravetId?: number;
+        urine?: string;
+        defecation?: string;
+        appetite?: string;
+        condition?: string;
+        symptoms?: string;
+      },
   ) {
     const bp = await this.prisma.bookingPet.findFirst({ where: { id: bookingPetId, bookingId } });
     if (!bp) throw new NotFoundException('BookingPet not found for given booking');
@@ -79,6 +84,42 @@ export class VisitsService {
       }
       return visit;
     });
+  }
+
+  async createWithQuickMix(
+    bookingId: number,
+    bookingPetId: number,
+    dto: {
+      visitDate?: string;
+      weight?: string;
+      temperature?: string;
+      notes?: string;
+      products?: { productId?: number; productName?: string; quantity: string }[];
+      quickMix?: { mixName: string; components: { productId: number; quantity: string }[] }[];
+      doctorId?: number;
+      paravetId?: number;
+      urine?: string;
+      defecation?: string;
+      appetite?: string;
+      condition?: string;
+      symptoms?: string;
+    },
+  ) {
+    // Create visit first
+    const visit = await this.create(bookingId, bookingPetId, dto);
+
+    // Handle quick mix after visit is created
+    if (dto.quickMix?.length) {
+      for (const mix of dto.quickMix) {
+        await this.mixService.createQuickMix(bookingId, bookingPetId, {
+          mixName: mix.mixName,
+          components: mix.components,
+          visitId: visit.id,
+        });
+      }
+    }
+
+    return visit;
   }
 }
 
