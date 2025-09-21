@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -9,10 +9,23 @@ export class MixService {
     return this.prisma.mixProduct.findMany({ include: { components: { include: { product: true } } }, orderBy: { name: 'asc' } });
   }
 
-  async createMix(_currentRole: string, dto: { name: string; description?: string; price?: string; components: { productId: number; quantityBase: string }[] }) {
+  async createMix(
+    _currentRole: string,
+    dto: { name: string; description?: string; price?: string; components: { productId: number; quantityBase: string }[] },
+  ) {
     if (!dto.components?.length) throw new ForbiddenException('Components required');
+    // Normalize and validate price if provided
+    let priceForCreate = '0';
+    if (dto.price != null) {
+      const raw = String(dto.price).trim().replace(/,/g, '.');
+      const numeric = Number(raw.replace(/[^0-9.-]/g, ''));
+      if (!Number.isFinite(numeric) || numeric < 0) {
+        throw new BadRequestException('Invalid price');
+      }
+      priceForCreate = String(numeric);
+    }
     return this.prisma.$transaction(async (tx) => {
-      const mix = await tx.mixProduct.create({ data: { name: dto.name, description: dto.description, price: dto.price ?? '0' } });
+      const mix = await tx.mixProduct.create({ data: { name: dto.name, description: dto.description, price: priceForCreate } });
       await tx.mixComponent.createMany({
         data: dto.components.map((c) => ({ mixProductId: mix.id, productId: c.productId, quantityBase: c.quantityBase })),
       });
@@ -75,13 +88,21 @@ export class MixService {
     if (!bp) throw new NotFoundException('BookingPet not found');
     if (!dto.components?.length) throw new ForbiddenException('Components required');
 
+    // Normalize and validate price (allow undefined -> default 0)
+    const rawPrice = dto.price != null ? String(dto.price).trim().replace(/,/g, '.') : '0';
+    const numericPrice = Number(rawPrice.replace(/[^0-9.-]/g, ''));
+    if (!Number.isFinite(numericPrice) || numericPrice < 0) {
+      throw new BadRequestException('Invalid price');
+    }
+    const priceStr = String(numericPrice);
+
     return this.prisma.$transaction(async (tx) => {
       // Create temporary mix product (tidak disimpan sebagai template)
       const tempMix = await tx.mixProduct.create({
         data: {
           name: dto.mixName || `Quick Mix - ${new Date().toISOString().slice(0, 10)}`,
           description: 'Quick Mix - Temporary',
-          price: dto.price ?? '0',
+          price: priceStr,
         },
       });
 

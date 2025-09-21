@@ -38,8 +38,9 @@ export class BillingService {
       return Math.max(0, diff);
     }
 
-    // Buat array semua item: gabungkan item PRIMARY implisit dari booking.serviceTypeId sebagai fallback
-    const implicitPrimary = booking.serviceTypeId
+    // Buat array semua item: tambahkan item PRIMARY implisit hanya jika belum ada PRIMARY eksplisit
+    const hasExplicitPrimary = booking.items.some((it: any) => it.role === 'PRIMARY' && it.serviceTypeId === booking.serviceTypeId);
+    const implicitPrimary = booking.serviceTypeId && !hasExplicitPrimary
       ? [{
           role: 'PRIMARY' as any,
           quantity: 1,
@@ -57,7 +58,9 @@ export class BillingService {
       const st = (it as any).serviceType;
       const perDay = st?.pricePerDay ? Number(st.pricePerDay) : 0;
       const flat = st?.price ? Number(st.price) : 0;
-      const unit = (it as any).unitPrice != null ? Number((it as any).unitPrice) : (perDay ? perDay : flat);
+      // Jika unitPrice tidak diisi (null/undefined/empty string), fallback ke harga default service type
+      const hasCustomUnit = (it as any).unitPrice !== undefined && (it as any).unitPrice !== null && String((it as any).unitPrice) !== '';
+      const unit = hasCustomUnit ? Number((it as any).unitPrice) : (perDay ? perDay : flat);
       if (perDay) {
         const s = (it as any).startDate ?? booking.startDate;
         const e = (it as any).endDate ?? booking.endDate;
