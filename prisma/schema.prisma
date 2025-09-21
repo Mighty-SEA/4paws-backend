@@ -19,6 +19,8 @@ enum JobRole {
   SUPERVISOR
   DOCTOR
   PARAVET
+  ADMIN
+  GROOMER
 }
 
 enum BookingStatus {
@@ -65,8 +67,12 @@ model Staff {
   // Reverse relations
   visitsAsDoctor Visit[]        @relation("VisitDoctor")
   visitsAsParavet Visit[]       @relation("VisitParavet")
+  visitsAsAdmin  Visit[]        @relation("VisitAdmin")
+  visitsAsGroomer Visit[]       @relation("VisitGroomer")
   examinationsAsDoctor Examination[] @relation("ExaminationDoctor")
   examinationsAsParavet Examination[] @relation("ExaminationParavet")
+  examinationsAsAdmin Examination[] @relation("ExaminationAdmin")
+  examinationsAsGroomer Examination[] @relation("ExaminationGroomer")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -195,11 +201,15 @@ model Examination {
   // Assigned medical staff
   doctorId     Int?
   paravetId    Int?
+  adminId      Int?
+  groomerId    Int?
 
   bookingPet   BookingPet    @relation(fields: [bookingPetId], references: [id])
   productUsages ProductUsage[]
   doctor       Staff?        @relation("ExaminationDoctor", fields: [doctorId], references: [id])
   paravet      Staff?        @relation("ExaminationParavet", fields: [paravetId], references: [id])
+  admin        Staff?        @relation("ExaminationAdmin", fields: [adminId], references: [id])
+  groomer      Staff?        @relation("ExaminationGroomer", fields: [groomerId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -297,6 +307,8 @@ model Visit {
   // Satwagia-like extra fields
   doctorId     Int?
   paravetId    Int?
+  adminId      Int?
+  groomerId    Int?
   urine        String?
   defecation   String?
   appetite     String?
@@ -306,6 +318,8 @@ model Visit {
   bookingPet   BookingPet @relation(fields: [bookingPetId], references: [id])
   doctor       Staff?     @relation("VisitDoctor", fields: [doctorId], references: [id])
   paravet      Staff?     @relation("VisitParavet", fields: [paravetId], references: [id])
+  admin        Staff?     @relation("VisitAdmin", fields: [adminId], references: [id])
+  groomer      Staff?     @relation("VisitGroomer", fields: [groomerId], references: [id])
   productUsages ProductUsage[]
   mixUsages    MixUsage[]
 

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, PrismaClient } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOwnerDto, CreatePetDto } from './dto';
@@ -103,7 +103,13 @@ export class OwnersService {
   }
 
   deletePet(petId: number) {
-    return this.prisma.pet.delete({ where: { id: petId } });
+    return this.prisma.pet
+      .delete({ where: { id: petId } })
+      .catch((err) => {
+        // Most likely due to FK constraint (pet linked to bookings/exams/visits)
+        const message = typeof err?.message === 'string' ? err.message : undefined;
+        throw new BadRequestException(message ?? 'Pet memiliki relasi aktif, tidak dapat dihapus');
+      });
   }
 
   async getOwnerDetail(id: number) {
@@ -123,11 +129,11 @@ export class OwnersService {
       include: {
         booking: { include: { serviceType: { include: { service: true } } } },
         examinations: {
-          include: { productUsages: true, doctor: true, paravet: true },
+          include: { productUsages: true, doctor: true, paravet: true, admin: true, groomer: true },
           orderBy: { createdAt: 'desc' },
         },
         visits: {
-          include: { productUsages: true, mixUsages: { include: { mixProduct: true } }, doctor: true, paravet: true },
+          include: { productUsages: true, mixUsages: { include: { mixProduct: true } }, doctor: true, paravet: true, admin: true, groomer: true },
           orderBy: { visitDate: 'desc' },
         },
       },

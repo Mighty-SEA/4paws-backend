@@ -11,6 +11,8 @@ type CreateVisitDto = {
   // Satwagia-like extras
   doctorId?: number;
   paravetId?: number;
+  adminId?: number;
+  groomerId?: number;
   urine?: string;
   defecation?: string;
   appetite?: string;

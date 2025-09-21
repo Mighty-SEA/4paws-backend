@@ -48,6 +48,16 @@ export class CreateExaminationDto {
   @IsInt()
   paravetId?: number;
 
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  adminId?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  groomerId?: number;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ProductUsageItemDto)

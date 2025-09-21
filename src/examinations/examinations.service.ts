@@ -24,6 +24,8 @@ export class ExaminationsService {
         quickMix?: { mixName: string; components: { productId: number; quantity: string }[] }[];
         doctorId?: number;
         paravetId?: number;
+        adminId?: number;
+        groomerId?: number;
       },
   ) {
     const bp = await this.prisma.bookingPet.findFirst({
@@ -60,6 +62,8 @@ export class ExaminationsService {
           prognosis: dto.prognosis ?? undefined,
           doctorId: dto.doctorId ?? undefined,
           paravetId: dto.paravetId ?? undefined,
+          adminId: dto.adminId ?? undefined,
+          groomerId: dto.groomerId ?? undefined,
         },
       });
       if (dto.products?.length) {

@@ -21,6 +21,8 @@ export class VisitsService {
         quickMix?: { mixName: string; components: { productId: number; quantity: string }[] }[];
         doctorId?: number;
         paravetId?: number;
+        adminId?: number;
+        groomerId?: number;
         urine?: string;
         defecation?: string;
         appetite?: string;
@@ -62,6 +64,8 @@ export class VisitsService {
           notes: dto.notes,
           doctorId: dto.doctorId ?? undefined,
           paravetId: dto.paravetId ?? undefined,
+          adminId: dto.adminId ?? undefined,
+          groomerId: dto.groomerId ?? undefined,
           urine: dto.urine ?? undefined,
           defecation: dto.defecation ?? undefined,
           appetite: dto.appetite ?? undefined,
