@@ -7,7 +7,10 @@ export class RolesGuard implements CanActivate {
   constructor(private readonly _allowed: AllowedAccountRole[]) {}
 
   canActivate(_context: ExecutionContext): boolean {
-    // Temporarily allow all roles (disable RBAC)
-    return true;
+    const req = _context.switchToHttp().getRequest();
+    const user = req?.user as { accountRole?: AllowedAccountRole } | undefined;
+    if (!user?.accountRole) return false;
+    if (!this._allowed?.length) return true;
+    return this._allowed.includes(user.accountRole);
   }
 }

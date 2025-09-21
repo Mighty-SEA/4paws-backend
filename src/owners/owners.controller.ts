@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { OwnersService } from './owners.service';
 import { CreateOwnerDto, CreatePetDto } from './dto';
 import { AuthGuard } from '@nestjs/passport';
+import { AllowRoles } from '../auth/roles.decorator';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('owners')
@@ -11,6 +12,21 @@ export class OwnersController {
   @Post()
   createOwner(@Body() dto: CreateOwnerDto) {
     return this.owners.createOwner(dto);
+  }
+
+  @AllowRoles('MASTER')
+  @Put(':id')
+  updateOwner(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: Partial<{ name: string; phone: string; email?: string; address: string }>,
+  ) {
+    return this.owners.updateOwner(id, dto);
+  }
+
+  @AllowRoles('MASTER')
+  @Delete(':id')
+  deleteOwner(@Param('id', ParseIntPipe) id: number) {
+    return this.owners.deleteOwner(id);
   }
 
   @Get()
@@ -37,6 +53,21 @@ export class OwnersController {
     @Body() dto: Omit<CreatePetDto, 'ownerId'>,
   ) {
     return this.owners.createPetForOwner({ ownerId, ...dto });
+  }
+
+  @AllowRoles('MASTER')
+  @Put('pets/:petId')
+  updatePet(
+    @Param('petId', ParseIntPipe) petId: number,
+    @Body() dto: Partial<{ name: string; species: string; breed: string; birthdate: string }>,
+  ) {
+    return this.owners.updatePet(petId, dto);
+  }
+
+  @AllowRoles('MASTER')
+  @Delete('pets/:petId')
+  deletePet(@Param('petId', ParseIntPipe) petId: number) {
+    return this.owners.deletePet(petId);
   }
 
   @Get(':id')

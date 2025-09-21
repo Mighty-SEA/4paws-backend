@@ -37,6 +37,20 @@ export class OwnersService {
     return this.prisma.owner.create({ data: dto });
   }
 
+  updateOwner(id: number, dto: Partial<{ name: string; phone: string; email?: string; address: string }>) {
+    const data: any = {};
+    if (dto.name !== undefined) data.name = String(dto.name);
+    if (dto.phone !== undefined) data.phone = String(dto.phone);
+    if (dto.email !== undefined) data.email = dto.email == null ? null : String(dto.email);
+    if (dto.address !== undefined) data.address = String(dto.address);
+    return this.prisma.owner.update({ where: { id }, data });
+  }
+
+  async deleteOwner(id: number) {
+    // Optionally cascade delete pets via Prisma relations or handle manually
+    return this.prisma.owner.delete({ where: { id } });
+  }
+
   async listPets(params: { q?: string; page?: number; pageSize?: number }) {
     const page = Math.max(1, params.page ?? 1);
     const pageSize = Math.min(100, Math.max(1, params.pageSize ?? 10));
@@ -77,6 +91,19 @@ export class OwnersService {
         birthdate: new Date(dto.birthdate),
       },
     });
+  }
+
+  updatePet(petId: number, dto: Partial<{ name: string; species: string; breed: string; birthdate: string }>) {
+    const data: any = {};
+    if (dto.name !== undefined) data.name = String(dto.name);
+    if (dto.species !== undefined) data.species = String(dto.species);
+    if (dto.breed !== undefined) data.breed = String(dto.breed);
+    if (dto.birthdate !== undefined) data.birthdate = new Date(dto.birthdate);
+    return this.prisma.pet.update({ where: { id: petId }, data });
+  }
+
+  deletePet(petId: number) {
+    return this.prisma.pet.delete({ where: { id: petId } });
   }
 
   async getOwnerDetail(id: number) {
