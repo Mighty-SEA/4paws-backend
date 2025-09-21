@@ -65,6 +65,7 @@ export class MixService {
     bookingPetId: number,
     dto: {
       mixName: string;
+      price?: string;
       components: { productId: number; quantity: string }[];
       visitId?: number;
       examinationId?: number;
@@ -80,7 +81,7 @@ export class MixService {
         data: {
           name: dto.mixName || `Quick Mix - ${new Date().toISOString().slice(0, 10)}`,
           description: 'Quick Mix - Temporary',
-          price: '0',
+          price: dto.price ?? '0',
         },
       });
 
@@ -100,34 +101,26 @@ export class MixService {
           mixProductId: tempMix.id,
           quantity: '1', // Quick mix always uses quantity 1
           visitId: dto.visitId ?? undefined,
-          unitPrice: '0',
+          unitPrice: tempMix.price,
         },
       });
 
-      // Expand to inventory OUT and ProductUsage
+      // Expand to inventory OUT (convert inner -> primary unit)
       for (const comp of dto.components) {
         const product = await tx.product.findUnique({ where: { id: comp.productId } });
         if (!product) throw new NotFoundException('Component product missing');
 
-        const quantity = Number(comp.quantity);
-        if (quantity <= 0) continue;
+        const innerQty = Number(comp.quantity);
+        if (!Number.isFinite(innerQty) || innerQty <= 0) continue;
 
-        // Create ProductUsage record
-        await tx.productUsage.create({
-          data: {
-            visitId: dto.visitId ?? undefined,
-            examinationId: dto.examinationId ?? undefined,
-            productName: product.name,
-            quantity: comp.quantity,
-            unitPrice: product.price,
-          },
-        });
+        const denom = product.unitContentAmount ? Number(product.unitContentAmount) : undefined;
+        const primaryQty = denom && denom > 0 ? innerQty / denom : innerQty;
 
-        // Create inventory OUT record
+        // Create inventory OUT record in primary stock unit
         await tx.inventory.create({
           data: {
             productId: product.id,
-            quantity: `-${comp.quantity}`,
+            quantity: `-${primaryQty}`,
             type: 'OUT',
             note: `Quick Mix #${mu.id}`,
           },

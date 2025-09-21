@@ -30,7 +30,14 @@ export class MixController {
   createQuickMix(
     @Param('bookingId') bookingId: string,
     @Param('bookingPetId') bookingPetId: string,
-    @Body() dto: { mixName: string; components: { productId: number; quantity: string }[]; visitId?: number; examinationId?: number },
+    @Body()
+    dto: {
+      mixName: string;
+      price?: string;
+      components: { productId: number; quantity: string }[];
+      visitId?: number;
+      examinationId?: number;
+    },
   ) {
     return this.mix.createQuickMix(Number(bookingId), Number(bookingPetId), dto);
   }

@@ -8,6 +8,7 @@ import { MixController } from './mix.controller';
   imports: [PrismaModule, AuthModule],
   providers: [MixService],
   controllers: [MixController],
+  exports: [MixService],
 })
 export class MixModule {}
 
