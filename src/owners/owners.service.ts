@@ -122,8 +122,14 @@ export class OwnersService {
       where: { petId },
       include: {
         booking: { include: { serviceType: { include: { service: true } } } },
-        examinations: { include: { productUsages: true }, orderBy: { createdAt: 'desc' } },
-        visits: { include: { productUsages: true, mixUsages: { include: { mixProduct: true } } }, orderBy: { visitDate: 'desc' } },
+        examinations: {
+          include: { productUsages: true, doctor: true, paravet: true },
+          orderBy: { createdAt: 'desc' },
+        },
+        visits: {
+          include: { productUsages: true, mixUsages: { include: { mixProduct: true } }, doctor: true, paravet: true },
+          orderBy: { visitDate: 'desc' },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });

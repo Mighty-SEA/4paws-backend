@@ -17,7 +17,7 @@ export class BookingsService {
         include: {
           owner: true,
           serviceType: { include: { service: true } },
-          pets: { include: { pet: true, examinations: true } },
+          pets: { include: { pet: true, examinations: { include: { doctor: true, paravet: true } } } },
           deposits: true,
         },
       }),
@@ -57,13 +57,14 @@ export class BookingsService {
         pets: {
           include: {
             pet: true,
-            examinations: { include: { productUsages: true }, orderBy: { createdAt: 'desc' } },
+            examinations: { include: { productUsages: true, doctor: true, paravet: true }, orderBy: { createdAt: 'desc' } },
             visits: {
               orderBy: { visitDate: 'desc' },
               include: {
                 productUsages: true,
                 mixUsages: { include: { mixProduct: true } },
                 doctor: true,
+                paravet: true,
               },
             },
             mixUsages: { include: { mixProduct: true } },
