@@ -131,21 +131,34 @@ export class BillingService {
     return { serviceSubtotal, totalProducts, totalDailyCharges, total, depositSum, amountDue, totalDaily, baseService };
   }
 
-  async checkout(bookingId: number, dto: { method?: string }) {
+  async checkout(bookingId: number, dto: { method?: string; discountPercent?: number }) {
     const est = await this.estimate(bookingId);
-    if (est.amountDue <= 0) {
+    const discountPercent = Math.max(0, Math.min(100, Number(dto.discountPercent ?? 0)));
+    const discountAmount = Number(((est.total ?? 0) * discountPercent) / 100);
+    const discountedTotal = Math.max(0, Number(est.total ?? 0) - discountAmount);
+    const amountDueAfterDiscount = Math.max(0, discountedTotal - Number(est.depositSum ?? 0));
+    if (amountDueAfterDiscount <= 0) {
       // tetap selesaikan booking meski tidak ada tagihan
       await this.prisma.booking.update({ where: { id: bookingId }, data: { status: 'COMPLETED' } });
-      if (est.amountDue < 0) {
+      if (amountDueAfterDiscount < 0) {
         // refund belum diimplementasi
       }
-      return { status: 'COMPLETED', totalPaid: 0, amountDue: est.amountDue };
+      return { status: 'COMPLETED', totalPaid: 0, amountDue: amountDueAfterDiscount, discountPercent, discountAmount };
     }
     return this.prisma.$transaction(async (tx) => {
       const invoiceNo = `INV-${bookingId}-${Date.now()}`;
-      await tx.payment.create({ data: { bookingId, total: est.amountDue.toString(), method: dto.method, invoiceNo } });
+      await tx.payment.create({
+        data: {
+          bookingId,
+          total: amountDueAfterDiscount.toString(),
+          method: dto.method,
+          invoiceNo,
+          discountPercent: discountPercent ? discountPercent.toString() : null as any,
+          discountAmount: discountAmount ? discountAmount.toString() : null as any,
+        },
+      });
       await tx.booking.update({ where: { id: bookingId }, data: { status: 'COMPLETED' } });
-      return { status: 'COMPLETED', totalPaid: est.amountDue, invoiceNo };
+      return { status: 'COMPLETED', totalPaid: amountDueAfterDiscount, invoiceNo, discountPercent, discountAmount };
     });
   }
 
@@ -153,9 +166,30 @@ export class BillingService {
     const payment = await this.prisma.payment.findFirst({
       where: { bookingId },
       orderBy: { paymentDate: 'desc' },
+      include: { booking: { include: { owner: true, serviceType: true, deposits: true } } },
     });
     if (!payment) throw new NotFoundException('Invoice not found');
-    return payment;
+    const booking = payment.booking as any;
+    const est = await this.estimate(bookingId);
+    const discountPercent = Number(payment.discountPercent ?? 0);
+    const discountAmount = Number(payment.discountAmount ?? 0);
+    const total = Number(est.total ?? 0);
+    const depositSum = Number(est.depositSum ?? (booking?.deposits ?? []).reduce((s: number, d: any) => s + Number(d.amount ?? 0), 0));
+    const discountedTotal = Math.max(0, total - discountAmount);
+    const amountDue = Math.max(0, discountedTotal - depositSum);
+    return {
+      id: payment.id,
+      bookingId,
+      method: payment.method,
+      invoiceNo: payment.invoiceNo,
+      createdAt: payment.createdAt,
+      total,
+      depositSum,
+      discountPercent,
+      discountAmount,
+      discountedTotal,
+      amountDue,
+    };
   }
 }
 

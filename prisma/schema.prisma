@@ -365,6 +365,8 @@ model Payment {
   total      Decimal    @db.Decimal(12,2)
   method     String?
   invoiceNo  String?
+  discountPercent Decimal? @db.Decimal(5,2)
+  discountAmount  Decimal? @db.Decimal(12,2)
 
   booking    Booking    @relation(fields: [bookingId], references: [id])
 

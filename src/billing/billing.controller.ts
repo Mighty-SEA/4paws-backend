@@ -13,7 +13,10 @@ export class BillingController {
   }
 
   @Post('checkout')
-  checkout(@Param('bookingId') bookingId: string, @Body() body: { method?: string }) {
+  checkout(
+    @Param('bookingId') bookingId: string,
+    @Body() body: { method?: string; discountPercent?: number },
+  ) {
     return this.billing.checkout(Number(bookingId), body ?? {});
   }
 
