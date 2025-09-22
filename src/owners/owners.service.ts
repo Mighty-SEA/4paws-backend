@@ -127,7 +127,7 @@ export class OwnersService {
     const records = await this.prisma.bookingPet.findMany({
       where: { petId },
       include: {
-        booking: { include: { serviceType: { include: { service: true } } } },
+        booking: { include: { serviceType: { include: { service: true } }, items: { include: { serviceType: { include: { service: true } } } } } },
         examinations: {
           include: { productUsages: true, doctor: true, paravet: true, admin: true, groomer: true },
           orderBy: { createdAt: 'desc' },
