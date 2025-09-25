@@ -36,7 +36,7 @@ export class DepositsService {
     return dep;
   }
 
-  list(bookingId: number) {
+  async list(bookingId: number) {
     return this.prisma.deposit.findMany({ where: { bookingId }, orderBy: { depositDate: 'desc' } });
   }
 
@@ -47,6 +47,13 @@ export class DepositsService {
     if (dto.startDate || dto.endDate) {
       await this.prisma.booking.update({ where: { id: bookingId }, data: { startDate: dto.startDate ? new Date(dto.startDate) : undefined, endDate: dto.endDate ? new Date(dto.endDate) : undefined } });
     }
+    return { ok: true };
+  }
+
+  async remove(bookingId: number, id: number) {
+    const dep = await this.prisma.deposit.findFirst({ where: { id, bookingId } });
+    if (!dep) throw new NotFoundException('Deposit not found');
+    await this.prisma.deposit.delete({ where: { id } });
     return { ok: true };
   }
 }

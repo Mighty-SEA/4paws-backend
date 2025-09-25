@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { DepositsService } from './deposits.service';
 
@@ -22,6 +22,11 @@ export class DepositsController {
   @Get()
   list(@Param('bookingId') bookingId: string) {
     return this.deposits.list(Number(bookingId));
+  }
+
+  @Delete(':id')
+  remove(@Param('bookingId') bookingId: string, @Param('id') id: string) {
+    return this.deposits.remove(Number(bookingId), Number(id));
   }
 }
 

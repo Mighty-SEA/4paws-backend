@@ -374,6 +374,18 @@ model Payment {
   updatedAt DateTime @updatedAt
 }
 
+// Backend 12: Expenses (pengeluaran operasional)
+model Expense {
+  id          Int       @id @default(autoincrement())
+  expenseDate DateTime  @default(now())
+  category    String
+  description String?
+  amount      Decimal   @db.Decimal(12,2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 // Drafts storage per user & scope
 model Draft {
   id        Int      @id @default(autoincrement())

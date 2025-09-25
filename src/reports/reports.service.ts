@@ -213,7 +213,7 @@ export class ReportsService {
 
     type HandlingItem = {
       date: string;
-      type: 'EXAM' | 'VISIT';
+      type: 'EXAM' | 'VISIT' | 'SERVICE';
       bookingId?: number;
       bookingPetId?: number;
       ownerName?: string;
@@ -264,7 +264,31 @@ export class ReportsService {
       };
     });
 
-    let merged: HandlingItem[] = [...examItems, ...visitItems];
+    // Service items from booking add-ons and primary
+    const itemWhere: any = { AND: [] };
+    if (startDate) itemWhere.AND.push({ createdAt: { gte: startDate } });
+    if (endDate)
+      itemWhere.AND.push({ createdAt: { lte: new Date(new Date(endDate).getTime() + 24 * 60 * 60 * 1000 - 1) } });
+    const serviceRows = await this.prisma.bookingItem.findMany({
+      where: itemWhere.AND.length ? itemWhere : undefined,
+      include: {
+        serviceType: { include: { service: true } },
+        booking: { include: { owner: true, serviceType: { include: { service: true } } } },
+      },
+      orderBy: { createdAt: 'desc' },
+    } as any);
+    const serviceItems: HandlingItem[] = (serviceRows as any[]).map((it) => {
+      return {
+        date: (it.createdAt as Date)?.toISOString?.().slice(0, 19) ?? new Date().toISOString().slice(0, 19),
+        type: 'SERVICE',
+        bookingId: it.bookingId,
+        ownerName: it.booking?.owner?.name,
+        serviceName: it.serviceType?.name ?? it.booking?.serviceType?.name,
+        detail: it.role,
+      } as HandlingItem;
+    });
+
+    let merged: HandlingItem[] = [...examItems, ...visitItems, ...serviceItems];
 
     // If role specified without staffId, optionally filter to items that have that role filled
     if (!staffId && role === 'DOCTOR') merged = merged.filter((r) => r.doctorName);
@@ -276,9 +300,9 @@ export class ReportsService {
     const total = merged.length;
     const startIdx = (Math.max(1, page) - 1) * Math.max(1, pageSize);
     const endIdx = startIdx + Math.max(1, pageSize);
-    const items = merged.slice(startIdx, endIdx);
+    const pageItems = merged.slice(startIdx, endIdx);
 
-    return { items, total, page, pageSize };
+    return { items: pageItems, total, page, pageSize };
   }
 
   async revenue(params: RevenueQuery) {
