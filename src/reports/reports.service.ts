@@ -13,7 +13,7 @@ type HandlingQuery = {
   start?: string;
   end?: string;
   staffId?: number;
-  role?: 'DOCTOR' | 'PARAVET' | 'ALL';
+  role?: 'DOCTOR' | 'PARAVET' | 'ADMIN' | 'GROOMER' | 'ALL';
   page?: number;
   pageSize?: number;
   sort?: 'asc' | 'desc';
@@ -155,7 +155,13 @@ export class ReportsService {
       } else if (role === 'PARAVET') {
         examWhere.AND.push({ paravetId: staffId });
       } else {
-        examWhere.AND.push({ OR: [{ doctorId: staffId }, { paravetId: staffId }] });
+        if (role === 'ADMIN') {
+          examWhere.AND.push({ adminId: staffId });
+        } else if (role === 'GROOMER') {
+          examWhere.AND.push({ groomerId: staffId });
+        } else {
+          examWhere.AND.push({ OR: [{ doctorId: staffId }, { paravetId: staffId }, { adminId: staffId }, { groomerId: staffId }] });
+        }
       }
     }
 
@@ -168,7 +174,13 @@ export class ReportsService {
       } else if (role === 'PARAVET') {
         visitWhere.AND.push({ paravetId: staffId });
       } else {
-        visitWhere.AND.push({ OR: [{ doctorId: staffId }, { paravetId: staffId }] });
+        if (role === 'ADMIN') {
+          visitWhere.AND.push({ adminId: staffId });
+        } else if (role === 'GROOMER') {
+          visitWhere.AND.push({ groomerId: staffId });
+        } else {
+          visitWhere.AND.push({ OR: [{ doctorId: staffId }, { paravetId: staffId }, { adminId: staffId }, { groomerId: staffId }] });
+        }
       }
     }
 
@@ -181,6 +193,8 @@ export class ReportsService {
           },
           doctor: true,
           paravet: true,
+          admin: true,
+          groomer: true,
         },
       } as any),
       this.prisma.visit.findMany({
@@ -191,6 +205,8 @@ export class ReportsService {
           },
           doctor: true,
           paravet: true,
+          admin: true,
+          groomer: true,
         },
       } as any),
     ]);
@@ -205,6 +221,8 @@ export class ReportsService {
       serviceName?: string;
       doctorName?: string;
       paravetName?: string;
+      adminName?: string;
+      groomerName?: string;
       detail?: string;
     };
 
@@ -221,6 +239,8 @@ export class ReportsService {
         serviceName: booking?.serviceType?.name,
         doctorName: e.doctor?.name,
         paravetName: e.paravet?.name,
+        adminName: e.admin?.name,
+        groomerName: e.groomer?.name,
         detail: e.diagnosis ?? e.notes ?? undefined,
       };
     });
@@ -238,6 +258,8 @@ export class ReportsService {
         serviceName: booking?.serviceType?.name,
         doctorName: v.doctor?.name,
         paravetName: v.paravet?.name,
+        adminName: v.admin?.name,
+        groomerName: v.groomer?.name,
         detail: v.notes ?? undefined,
       };
     });
@@ -247,6 +269,8 @@ export class ReportsService {
     // If role specified without staffId, optionally filter to items that have that role filled
     if (!staffId && role === 'DOCTOR') merged = merged.filter((r) => r.doctorName);
     if (!staffId && role === 'PARAVET') merged = merged.filter((r) => r.paravetName);
+    if (!staffId && role === 'ADMIN') merged = merged.filter((r) => r.adminName);
+    if (!staffId && role === 'GROOMER') merged = merged.filter((r) => r.groomerName);
 
     merged.sort((a, b) => (sort === 'asc' ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date)));
     const total = merged.length;

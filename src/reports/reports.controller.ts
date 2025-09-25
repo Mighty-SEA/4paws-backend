@@ -30,7 +30,13 @@ export class ReportsController {
             .split(',')
             .map((v) => v.trim())
         : [];
-    return this.reportsService.productUsage({ start, end, groupBy, productIds, sourceTypes });
+    return this.reportsService.productUsage({
+      start,
+      end,
+      groupBy,
+      productIds,
+      sourceTypes,
+    });
   }
 
   @Get('handling')
@@ -38,7 +44,7 @@ export class ReportsController {
     @Query('start') start?: string,
     @Query('end') end?: string,
     @Query('staffId') staffId?: string,
-    @Query('role') role?: 'DOCTOR' | 'PARAVET' | 'ALL',
+    @Query('role') role?: 'DOCTOR' | 'PARAVET' | 'ADMIN' | 'GROOMER' | 'ALL',
     @Query('page') page?: string,
     @Query('pageSize') pageSize?: string,
     @Query('sort') sort?: 'asc' | 'desc',
@@ -55,15 +61,10 @@ export class ReportsController {
   }
 
   @Get('revenue')
-  async getRevenue(
-    @Query('start') start?: string,
-    @Query('end') end?: string,
-  ) {
+  async getRevenue(@Query('start') start?: string, @Query('end') end?: string) {
     return this.reportsService.revenue({
       start,
       end,
     });
   }
 }
-
-
