@@ -14,7 +14,11 @@ export class ReportsController {
     @Query('groupBy') groupBy: 'day' | 'product' | 'source' | 'service' = 'day',
     @Query('productId') productId?: string[] | string,
     @Query('sourceType') sourceType?: string[] | string,
+    @Query('mode') mode?: 'detail' | 'summary',
   ) {
+    if (mode === 'summary') {
+      return this.reportsService.productUsageSummary({ start, end });
+    }
     const productIds = Array.isArray(productId)
       ? productId.map((v) => Number(v))
       : productId

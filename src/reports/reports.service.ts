@@ -8,6 +8,7 @@ type ProductUsageQuery = {
   productIds?: number[];
   sourceTypes?: string[]; // visit|exam|mix
 };
+type ProductUsageSummaryQuery = { start?: string; end?: string };
 
 type HandlingQuery = {
   start?: string;
@@ -124,6 +125,54 @@ export class ReportsService {
     }
 
     return merged;
+  }
+
+  async productUsageSummary(params: ProductUsageSummaryQuery) {
+    const { start, end } = params;
+    // Ambil detail gabungan
+    const detail = (await this.productUsage({ start, end })) as any[];
+
+    // Kumpulkan nama produk unik untuk lookup unit & harga
+    const productNames = Array.from(new Set(detail.map((d) => String(d.productName ?? 'Unknown')))).filter(Boolean);
+    const products = await this.prisma.product.findMany({ where: { name: { in: productNames } } });
+    const nameToInfo = new Map<string, { price: number; unit?: string; denom?: number; innerUnit?: string }>();
+    for (const p of products) {
+      nameToInfo.set(p.name, {
+        price: Number(p.price ?? 0),
+        unit: (p as any).unit,
+        denom: (p as any).unitContentAmount ? Number((p as any).unitContentAmount) : undefined,
+        innerUnit: (p as any).unitContentName || undefined,
+      });
+    }
+
+    // Agregasi per produk dengan konversi unit & fallback biaya
+    const summary = new Map<string, { productName: string; timesUsed: number; totalPrimaryQty: number; totalInnerQty: number; totalCost: number; unit?: string; innerUnit?: string; denom?: number }>();
+    for (const row of detail) {
+      const key = String(row.productName ?? 'Unknown');
+      const info = nameToInfo.get(key);
+      const sourceType = String(row.sourceType ?? 'exam');
+      const rawQty = Number(row.quantity ?? 0);
+      // Konversi ke unit utama (primary):
+      // - visit/exam pada ProductUsage sudah primary
+      // - mix (komponen) masih inner -> bagi denom jika ada
+      const primaryQty = sourceType === 'mix' && info?.denom && info.denom > 0 ? rawQty / info.denom : rawQty;
+      const innerQty = sourceType === 'mix' ? rawQty : (info?.denom && info.denom > 0 ? primaryQty * info.denom : primaryQty);
+
+      // Hitung biaya: gunakan cost yang ada, jika 0/null fallback ke (unitPrice || master price) * primaryQty
+      const unitPrice = Number(row.unitPrice ?? 0);
+      const rowCost = Number(row.cost ?? 0);
+      const fallbackUnitPrice = unitPrice > 0 ? unitPrice : Number(info?.price ?? 0);
+      const cost = rowCost > 0 ? rowCost : primaryQty * fallbackUnitPrice;
+
+      const prev = summary.get(key) || { productName: key, timesUsed: 0, totalPrimaryQty: 0, totalInnerQty: 0, totalCost: 0, unit: info?.unit, innerUnit: info?.innerUnit, denom: info?.denom };
+      prev.timesUsed += 1;
+      prev.totalPrimaryQty += primaryQty;
+      prev.totalInnerQty += innerQty;
+      prev.totalCost += cost;
+      summary.set(key, prev);
+    }
+
+    return Array.from(summary.values()).sort((a, b) => b.timesUsed - a.timesUsed);
   }
 
   private async resolveProductNames(productIds: number[]): Promise<string[]> {
