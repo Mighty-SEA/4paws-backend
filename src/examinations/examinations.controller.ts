@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { CreateExaminationDto } from './dto';
 import { ExaminationsService } from './examinations.service';
@@ -11,6 +11,11 @@ export class ExaminationsController {
   @Post()
   create(@Req() _req: any, @Param('bookingId') bookingId: string, @Param('bookingPetId') bookingPetId: string, @Body() dto: CreateExaminationDto) {
     return this.exams.create(Number(bookingId), Number(bookingPetId), dto);
+  }
+
+  @Put()
+  update(@Req() _req: any, @Param('bookingId') bookingId: string, @Param('bookingPetId') bookingPetId: string, @Body() dto: CreateExaminationDto) {
+    return this.exams.update(Number(bookingId), Number(bookingPetId), dto);
   }
 }
 

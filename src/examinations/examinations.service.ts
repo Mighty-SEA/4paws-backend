@@ -78,6 +78,60 @@ export class ExaminationsService {
           await tx.inventory.create({ data: { productId: product.id, quantity: `-${quantity}`, type: 'OUT', note: `Usage exam #${exam.id}` } });
         }
       }
+      // Do not auto-change booking status here.
+      // Status transitions are handled explicitly from the frontend buttons
+      // (Lanjutkan ke Deposit => WAITING_TO_DEPOSIT, Selesai/Save => COMPLETED for non per-day).
+      return exam;
+    });
+  }
+
+  async update(
+    bookingId: number,
+    bookingPetId: number,
+    dto: {
+      weight?: string;
+      temperature?: string;
+      notes?: string;
+      chiefComplaint?: string;
+      additionalNotes?: string;
+      diagnosis?: string;
+      prognosis?: string;
+      products: { productName: string; quantity: string }[];
+      quickMix?: { mixName: string; components: { productId: number; quantity: string }[] }[];
+      doctorId?: number;
+      paravetId?: number;
+      adminId?: number;
+      groomerId?: number;
+    },
+  ) {
+    const bp = await this.prisma.bookingPet.findFirst({
+      where: { id: bookingPetId, bookingId },
+      include: { examinations: true },
+    });
+    if (!bp) throw new NotFoundException('BookingPet not found for given booking');
+    const latest = bp.examinations[0] ?? (await this.prisma.examination.findFirst({ where: { bookingPetId }, orderBy: { createdAt: 'desc' } }));
+    if (!latest) {
+      // If no existing exam, fallback to create
+      return this.create(bookingId, bookingPetId, dto);
+    }
+    return this.prisma.$transaction(async (tx) => {
+      const exam = await tx.examination.update({
+        where: { id: latest.id },
+        data: {
+          weight: dto.weight ? dto.weight : undefined,
+          temperature: dto.temperature ? dto.temperature : undefined,
+          notes: dto.notes,
+          chiefComplaint: dto.chiefComplaint ?? undefined,
+          additionalNotes: dto.additionalNotes ?? undefined,
+          diagnosis: dto.diagnosis ?? undefined,
+          prognosis: dto.prognosis ?? undefined,
+          doctorId: dto.doctorId ?? undefined,
+          paravetId: dto.paravetId ?? undefined,
+          adminId: dto.adminId ?? undefined,
+          groomerId: dto.groomerId ?? undefined,
+        },
+      });
+      // For simplicity, keep existing usages; advanced reconciliation can be added later
       return exam;
     });
   }

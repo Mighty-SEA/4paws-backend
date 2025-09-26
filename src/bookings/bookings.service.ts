@@ -80,6 +80,13 @@ export class BookingsService {
     return this.prisma.booking.update({ where: { id }, data: { proceedToAdmission: true, status: 'WAITING_TO_DEPOSIT' as any } });
   }
 
+  updateBooking(id: number, dto: any) {
+    const data: any = {};
+    if (dto?.status) data.status = dto.status;
+    if (dto?.proceedToAdmission != null) data.proceedToAdmission = Boolean(dto.proceedToAdmission);
+    return this.prisma.booking.update({ where: { id }, data });
+  }
+
   async splitBooking(id: number, petIds: number[]) {
     if (!Array.isArray(petIds) || petIds.length === 0) {
       throw new Error('petIds must be a non-empty array');
@@ -153,6 +160,54 @@ export class BookingsService {
     if (!item) throw new NotFoundException('Item not found');
     await this.prisma.bookingItem.delete({ where: { id: itemId } });
     return { ok: true };
+  }
+
+  async deleteBooking(id: number) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id },
+      include: {
+        pets: {
+          include: {
+            examinations: true,
+            visits: true,
+            dailyCharges: true,
+            mixUsages: true,
+          },
+        },
+        items: true,
+        deposits: true,
+        payments: true,
+      },
+    });
+    if (!booking) throw new NotFoundException('Booking not found');
+    if (booking.status !== 'PENDING') {
+      throw new Error('Hanya booking berstatus PENDING yang dapat dihapus');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const bookingPetIds = booking.pets.map((p) => p.id);
+      const examinationIds = booking.pets.flatMap((p) => (p.examinations ?? []).map((e) => e.id));
+      const visitIds = booking.pets.flatMap((p) => (p.visits ?? []).map((v) => v.id));
+
+      if (examinationIds.length) {
+        await tx.productUsage.deleteMany({ where: { examinationId: { in: examinationIds } } });
+      }
+      if (visitIds.length) {
+        await tx.productUsage.deleteMany({ where: { visitId: { in: visitIds } } });
+      }
+      if (bookingPetIds.length) {
+        await tx.visit.deleteMany({ where: { bookingPetId: { in: bookingPetIds } } });
+        await tx.mixUsage.deleteMany({ where: { bookingPetId: { in: bookingPetIds } } });
+        await tx.dailyCharge.deleteMany({ where: { bookingPetId: { in: bookingPetIds } } });
+        await tx.examination.deleteMany({ where: { bookingPetId: { in: bookingPetIds } } });
+        await tx.bookingPet.deleteMany({ where: { id: { in: bookingPetIds } } });
+      }
+      await tx.bookingItem.deleteMany({ where: { bookingId: id } });
+      await tx.deposit.deleteMany({ where: { bookingId: id } });
+      await tx.payment.deleteMany({ where: { bookingId: id } });
+      await tx.booking.delete({ where: { id } });
+      return { ok: true };
+    });
   }
 }
 

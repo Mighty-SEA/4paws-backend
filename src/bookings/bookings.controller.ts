@@ -18,6 +18,11 @@ export class BookingsController {
     return this.bookings.getBooking(Number(id));
   }
 
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() dto: any) {
+    return this.bookings.updateBooking(Number(id), dto);
+  }
+
   @Get()
   list(@Query('page') page?: string, @Query('pageSize') pageSize?: string) {
     return this.bookings.listBookings({ page: page ? Number(page) : undefined, pageSize: pageSize ? Number(pageSize) : undefined });
@@ -47,6 +52,11 @@ export class BookingsController {
   @Delete(':id/items/:itemId')
   deleteItem(@Param('id') id: string, @Param('itemId') itemId: string) {
     return this.bookings.deleteItem(Number(id), Number(itemId));
+  }
+
+  @Delete(':id')
+  delete(@Param('id') id: string) {
+    return this.bookings.deleteBooking(Number(id));
   }
 }
 
