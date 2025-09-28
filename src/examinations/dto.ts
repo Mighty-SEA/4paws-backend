@@ -2,21 +2,49 @@ import { IsArray, IsInt, IsOptional, IsString, ValidateNested } from 'class-vali
 import { Type } from 'class-transformer';
 
 class ProductUsageItemDto {
+  @IsOptional()
+  @IsInt()
+  productId?: number;
+
+  @IsOptional()
   @IsString()
-  productName!: string;
+  productName?: string;
 
   @IsString()
-  quantity!: string; // allow decimal string values
+  quantity!: string;
+}
+
+class MixComponentDto {
+  @IsInt()
+  productId!: number;
+
+  @IsString()
+  quantity!: string;
+}
+
+class MixItemDto {
+  @IsOptional()
+  @IsString()
+  mixName?: string;
+
+  @IsOptional()
+  @IsString()
+  price?: string;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MixComponentDto)
+  components!: MixComponentDto[];
 }
 
 export class CreateExaminationDto {
   @IsOptional()
   @IsString()
-  weight?: string; // allow decimal string values
+  weight?: string;
 
   @IsOptional()
   @IsString()
-  temperature?: string; // allow decimal string values
+  temperature?: string;
 
   @IsOptional()
   @IsString()
@@ -58,10 +86,15 @@ export class CreateExaminationDto {
   @IsInt()
   groomerId?: number;
 
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ProductUsageItemDto)
-  products!: ProductUsageItemDto[];
+  products?: ProductUsageItemDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MixItemDto)
+  mixes?: MixItemDto[];
 }
-
-

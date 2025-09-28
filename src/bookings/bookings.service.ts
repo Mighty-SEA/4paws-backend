@@ -57,7 +57,26 @@ export class BookingsService {
         pets: {
           include: {
             pet: true,
-            examinations: { include: { productUsages: true, doctor: true, paravet: true, admin: true, groomer: true }, orderBy: { createdAt: 'desc' } },
+            examinations: {
+              where: {
+                OR: [
+                  { weight: { not: null } },
+                  { temperature: { not: null } },
+                  { notes: { not: null } },
+                  { chiefComplaint: { not: null } },
+                  { additionalNotes: { not: null } },
+                  { diagnosis: { not: null } },
+                  { prognosis: { not: null } },
+                  { doctorId: { not: null } },
+                  { paravetId: { not: null } },
+                  { adminId: { not: null } },
+                  { groomerId: { not: null } },
+                  { productUsages: { some: {} } },
+                ],
+              },
+              include: { productUsages: true, doctor: true, paravet: true, admin: true, groomer: true },
+              orderBy: { createdAt: 'desc' },
+            },
             visits: {
               orderBy: { visitDate: 'desc' },
               include: {
