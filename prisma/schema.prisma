@@ -143,6 +143,9 @@ model Booking {
   startDate     DateTime? 
   endDate       DateTime?
   proceedToAdmission Boolean   @default(false)
+  // Primary service discount
+  primaryDiscountPercent Decimal? @db.Decimal(5,2)
+  primaryDiscountAmount  Decimal? @db.Decimal(12,2)
 
   owner         Owner          @relation(fields: [ownerId], references: [id])
   serviceType   ServiceType    @relation(fields: [serviceTypeId], references: [id])
@@ -164,6 +167,8 @@ model BookingItem {
   startDate     DateTime?
   endDate       DateTime?
   unitPrice     Decimal?        @db.Decimal(12,2)
+  discountPercent Decimal?      @db.Decimal(5,2)
+  discountAmount  Decimal?      @db.Decimal(12,2)
 
   booking       Booking         @relation(fields: [bookingId], references: [id])
   serviceType   ServiceType     @relation(fields: [serviceTypeId], references: [id])
@@ -223,6 +228,8 @@ model ProductUsage {
   productName    String
   quantity       Decimal     @db.Decimal(12,2)
   unitPrice      Decimal?    @db.Decimal(12,2)
+  discountPercent Decimal?   @db.Decimal(5,2)
+  discountAmount  Decimal?   @db.Decimal(12,2)
 
   examination    Examination? @relation(fields: [examinationId], references: [id])
   visit          Visit?       @relation(fields: [visitId], references: [id])
@@ -289,6 +296,8 @@ model MixUsage {
   quantity     Decimal    @db.Decimal(12,4)
   visitId      Int?
   unitPrice    Decimal?   @db.Decimal(12,2)
+  discountPercent Decimal? @db.Decimal(5,2)
+  discountAmount  Decimal? @db.Decimal(12,2)
 
   bookingPet   BookingPet @relation(fields: [bookingPetId], references: [id])
   mixProduct   MixProduct @relation(fields: [mixProductId], references: [id])

@@ -20,6 +20,19 @@ export class BillingController {
     return this.billing.checkout(Number(bookingId), body ?? {});
   }
 
+  @Post('item-discount')
+  updateItemDiscount(
+    @Param('bookingId') bookingId: string,
+    @Body() body: {
+      itemType: 'service' | 'product' | 'mix';
+      itemId: number;
+      discountPercent?: number;
+      discountAmount?: number;
+    },
+  ) {
+    return this.billing.updateItemDiscount(Number(bookingId), body);
+  }
+
   @Get('invoice')
   invoice(@Param('bookingId') bookingId: string) {
     return this.billing.invoice(Number(bookingId));

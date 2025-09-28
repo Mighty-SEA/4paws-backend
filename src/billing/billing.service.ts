@@ -48,6 +48,8 @@ export class BillingService {
           endDate: booking.endDate,
           unitPrice: null as any,
           serviceType: booking.serviceType,
+          discountPercent: booking.primaryDiscountPercent,
+          discountAmount: booking.primaryDiscountAmount,
         }]
       : [];
     const items = [...implicitPrimary, ...booking.items];
@@ -61,6 +63,8 @@ export class BillingService {
       // Jika unitPrice tidak diisi (null/undefined/empty string), fallback ke harga default service type
       const hasCustomUnit = (it as any).unitPrice !== undefined && (it as any).unitPrice !== null && String((it as any).unitPrice) !== '';
       const unit = hasCustomUnit ? Number((it as any).unitPrice) : (perDay ? perDay : flat);
+      
+      let itemSubtotal = 0;
       if (perDay) {
         const s = (it as any).startDate ?? booking.startDate;
         const e = (it as any).endDate ?? booking.endDate;
@@ -68,16 +72,25 @@ export class BillingService {
         // Per item per-hari tidak dikalikan jumlah pets, kecuali ingin meniru perilaku lama pada PRIMARY.
         // Untuk kompatibilitas: jika item adalah implicitPrimary dan sebelumnya mengalikan pets, pertahankan.
         const petFactor = st === booking.serviceType && (implicitPrimary.length ? booking.pets.length : 1);
-        serviceSubtotal += days * unit * (petFactor || 1) * qty;
+        itemSubtotal = days * unit * (petFactor || 1) * qty;
       } else {
         // non per-hari: bila ingin per-hewan seperti perilaku lama, kalikan jumlah hewan yang diperiksa.
         if (st === booking.serviceType && !perDay) {
           const examinedPetCount = booking.pets.reduce((count, bp) => count + (bp.examinations.length > 0 ? 1 : 0), 0);
-          serviceSubtotal += unit * examinedPetCount * qty;
+          itemSubtotal = unit * examinedPetCount * qty;
         } else {
-          serviceSubtotal += unit * qty;
+          itemSubtotal = unit * qty;
         }
       }
+
+      // Apply item-level discount
+      const itemDiscountPercent = Number((it as any).discountPercent ?? 0);
+      const itemDiscountAmount = Number((it as any).discountAmount ?? 0);
+      const discountByPercent = itemDiscountPercent > 0 ? Math.round((itemSubtotal * itemDiscountPercent) / 100) : 0;
+      const effectiveDiscount = itemDiscountPercent > 0 ? discountByPercent : itemDiscountAmount;
+      const discountedItemSubtotal = Math.max(0, itemSubtotal - effectiveDiscount);
+      
+      serviceSubtotal += discountedItemSubtotal;
     }
     // Map product prices for quick lookup
     const products = await this.prisma.product.findMany({ select: { name: true, price: true } });
@@ -86,7 +99,14 @@ export class BillingService {
       (sum, bp) =>
         sum +
         bp.examinations.reduce(
-          (es, ex) => es + ex.productUsages.reduce((ps, pu) => ps + Number(pu.quantity) * Number(pu.unitPrice ?? nameToPrice.get(pu.productName) ?? 0), 0),
+          (es, ex) => es + ex.productUsages.reduce((ps, pu) => {
+            const itemSubtotal = Number(pu.quantity) * Number(pu.unitPrice ?? nameToPrice.get(pu.productName) ?? 0);
+            const discountPercent = Number(pu.discountPercent ?? 0);
+            const discountAmount = Number(pu.discountAmount ?? 0);
+            const discountByPercent = discountPercent > 0 ? Math.round((itemSubtotal * discountPercent) / 100) : 0;
+            const effectiveDiscount = discountPercent > 0 ? discountByPercent : discountAmount;
+            return ps + Math.max(0, itemSubtotal - effectiveDiscount);
+          }, 0),
           0,
         ),
       0,
@@ -97,14 +117,35 @@ export class BillingService {
         bp.visits.reduce(
           (vs, v) =>
             vs +
-            v.productUsages.reduce((ps, pu) => ps + Number(pu.quantity) * Number(pu.unitPrice ?? nameToPrice.get(pu.productName) ?? 0), 0) +
-            v.mixUsages.reduce((ms, mu) => ms + Number(mu.quantity) * Number(mu.unitPrice ?? mu.mixProduct?.price ?? 0), 0),
+            v.productUsages.reduce((ps, pu) => {
+              const itemSubtotal = Number(pu.quantity) * Number(pu.unitPrice ?? nameToPrice.get(pu.productName) ?? 0);
+              const discountPercent = Number(pu.discountPercent ?? 0);
+              const discountAmount = Number(pu.discountAmount ?? 0);
+              const discountByPercent = discountPercent > 0 ? Math.round((itemSubtotal * discountPercent) / 100) : 0;
+              const effectiveDiscount = discountPercent > 0 ? discountByPercent : discountAmount;
+              return ps + Math.max(0, itemSubtotal - effectiveDiscount);
+            }, 0) +
+            v.mixUsages.reduce((ms, mu) => {
+              const itemSubtotal = Number(mu.quantity) * Number(mu.unitPrice ?? mu.mixProduct?.price ?? 0);
+              const discountPercent = Number(mu.discountPercent ?? 0);
+              const discountAmount = Number(mu.discountAmount ?? 0);
+              const discountByPercent = discountPercent > 0 ? Math.round((itemSubtotal * discountPercent) / 100) : 0;
+              const effectiveDiscount = discountPercent > 0 ? discountByPercent : discountAmount;
+              return ms + Math.max(0, itemSubtotal - effectiveDiscount);
+            }, 0),
           0,
         ),
       0,
     );
     const totalStandaloneMix = booking.pets.reduce(
-      (sum, bp) => sum + bp.mixUsages.reduce((ms, mu) => ms + Number(mu.quantity) * Number(mu.unitPrice ?? mu.mixProduct?.price ?? 0), 0),
+      (sum, bp) => sum + bp.mixUsages.reduce((ms, mu) => {
+        const itemSubtotal = Number(mu.quantity) * Number(mu.unitPrice ?? mu.mixProduct?.price ?? 0);
+        const discountPercent = Number(mu.discountPercent ?? 0);
+        const discountAmount = Number(mu.discountAmount ?? 0);
+        const discountByPercent = discountPercent > 0 ? Math.round((itemSubtotal * discountPercent) / 100) : 0;
+        const effectiveDiscount = discountPercent > 0 ? discountByPercent : discountAmount;
+        return ms + Math.max(0, itemSubtotal - effectiveDiscount);
+      }, 0),
       0,
     );
     const totalDailyCharges = booking.pets.reduce((sum, bp) => sum + bp.dailyCharges.reduce((cs, c) => cs + Number(c.amount ?? 0), 0), 0);
@@ -160,6 +201,55 @@ export class BillingService {
       await tx.booking.update({ where: { id: bookingId }, data: { status: 'COMPLETED' } });
       return { status: 'COMPLETED', totalPaid: amountDueAfterDiscount, invoiceNo, discountPercent, discountAmount };
     });
+  }
+
+  async updateItemDiscount(bookingId: number, dto: {
+    itemType: 'service' | 'product' | 'mix';
+    itemId: number;
+    discountPercent?: number;
+    discountAmount?: number;
+  }) {
+    const { itemType, itemId, discountPercent, discountAmount } = dto;
+    
+    if (itemType === 'service') {
+      if (itemId === 0) {
+        // Primary service - update booking table
+        await this.prisma.booking.update({
+          where: { id: bookingId },
+          data: {
+            primaryDiscountPercent: discountPercent?.toString(),
+            primaryDiscountAmount: discountAmount?.toString(),
+          },
+        });
+      } else {
+        // Addon service - update booking item
+        await this.prisma.bookingItem.update({
+          where: { id: itemId },
+          data: {
+            discountPercent: discountPercent?.toString(),
+            discountAmount: discountAmount?.toString(),
+          },
+        });
+      }
+    } else if (itemType === 'product') {
+      await this.prisma.productUsage.update({
+        where: { id: itemId },
+        data: {
+          discountPercent: discountPercent?.toString(),
+          discountAmount: discountAmount?.toString(),
+        },
+      });
+    } else if (itemType === 'mix') {
+      await this.prisma.mixUsage.update({
+        where: { id: itemId },
+        data: {
+          discountPercent: discountPercent?.toString(),
+          discountAmount: discountAmount?.toString(),
+        },
+      });
+    }
+    
+    return { success: true };
   }
 
   async invoice(bookingId: number) {
