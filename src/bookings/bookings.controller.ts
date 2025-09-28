@@ -2,11 +2,15 @@ import { Body, Controller, Get, Param, Post, Patch, Query, Req, UseGuards, Delet
 import { AuthGuard } from '@nestjs/passport';
 import { CreateBookingDto, SplitBookingDto, CreateBookingItemDto } from './dto';
 import { BookingsService } from './bookings.service';
+import { BookingRepairService } from './booking-repair.service';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('bookings')
 export class BookingsController {
-  constructor(private readonly bookings: BookingsService) {}
+  constructor(
+    private readonly bookings: BookingsService,
+    private readonly bookingRepair: BookingRepairService,
+  ) {}
 
   @Post()
   create(@Req() _req: any, @Body() dto: CreateBookingDto) {
@@ -57,6 +61,17 @@ export class BookingsController {
   @Delete(':id')
   delete(@Param('id') id: string) {
     return this.bookings.deleteBooking(Number(id));
+  }
+
+  // Repair endpoints
+  @Get('repair/problematic')
+  getProblematicBookings() {
+    return this.bookingRepair.getProblematicBookings();
+  }
+
+  @Post('repair/fix-statuses')
+  repairBookingStatuses() {
+    return this.bookingRepair.repairBookingStatuses();
   }
 }
 

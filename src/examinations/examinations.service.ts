@@ -146,6 +146,24 @@ export class ExaminationsService {
         }
       }
 
+      // If this is a per-day service (pet hotel/rawat inap), after first exam mark booking as waiting to deposit
+      const pricePerDay = bp.booking.serviceType?.pricePerDay;
+      console.log(`[ExaminationService] Checking pricePerDay for booking ${bp.bookingId}:`, pricePerDay, typeof pricePerDay);
+      
+      if (pricePerDay) {
+        console.log(`[ExaminationService] Updating booking ${bp.bookingId} status to WAITING_TO_DEPOSIT`);
+        const updatedBooking = await tx.booking.update({ 
+          where: { id: bp.bookingId }, 
+          data: { proceedToAdmission: true, status: 'WAITING_TO_DEPOSIT' as any } 
+        });
+        console.log(`[ExaminationService] Booking ${bp.bookingId} updated successfully:`, {
+          status: updatedBooking.status,
+          proceedToAdmission: updatedBooking.proceedToAdmission
+        });
+      } else {
+        console.log(`[ExaminationService] Booking ${bp.bookingId} is not per-day service, keeping status as is`);
+      }
+
       const result = await tx.examination.findUnique({
         where: { id: exam.id },
         include: {
