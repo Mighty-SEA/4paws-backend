@@ -19,9 +19,10 @@ import { StaffModule } from './staff/staff.module';
 import { UsersModule } from './users/users.module';
 import { DraftsModule } from './drafts/drafts.module';
 // import { ExpensesModule } from './expenses/expenses.module';
+import { SettingsModule } from './settings/settings.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, OwnersModule, CatalogModule, BookingsModule, ExaminationsModule, ProductsModule, VisitsModule, DepositsModule, DailyChargesModule, BillingModule, MixModule, PaymentsModule, ReportsModule, StaffModule, UsersModule, DraftsModule],
+  imports: [PrismaModule, AuthModule, OwnersModule, CatalogModule, BookingsModule, ExaminationsModule, ProductsModule, VisitsModule, DepositsModule, DailyChargesModule, BillingModule, MixModule, PaymentsModule, ReportsModule, StaffModule, UsersModule, DraftsModule, SettingsModule],
   controllers: [AppController],
   providers: [AppService],
 })

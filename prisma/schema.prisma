@@ -399,4 +399,35 @@ model Draft {
   @@unique([userId, scope])
 }
 
+// Store settings & bank accounts
+model StoreSetting {
+  id        Int           @id @default(autoincrement())
+  name      String?
+  address   String
+  phone     String
+  extra     Json?
+
+  bankAccounts BankAccount[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model BankAccount {
+  id             Int           @id @default(autoincrement())
+  storeSettingId Int
+  bankName       String
+  accountNumber  String
+  accountHolder  String
+  isActive       Boolean       @default(true)
+  sortOrder      Int           @default(0)
+
+  storeSetting StoreSetting @relation(fields: [storeSettingId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([storeSettingId, isActive, sortOrder])
+}
+
 

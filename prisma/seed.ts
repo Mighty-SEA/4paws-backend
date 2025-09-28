@@ -74,6 +74,12 @@ async function main() {
   // Seed Products & Mix
   await seedProductsAndMix(prisma);
 
+  // Ensure default StoreSetting exists
+  const existingSetting = await prisma.storeSetting.findFirst();
+  if (!existingSetting) {
+    await prisma.storeSetting.create({ data: { address: 'Alamat toko', phone: '08123456789', name: '4PAWS Petcare' } });
+  }
+
   // eslint-disable-next-line no-console
   console.log('Seed completed. Users: master/master12345, admin/admin12345');
 }
