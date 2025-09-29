@@ -1,6 +1,6 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 
-export type AllowedAccountRole = 'MASTER' | 'SUPERVISOR';
+export type AllowedAccountRole = 'MASTER' | 'SUPERVISOR' | 'ADMIN';
 
 @Injectable()
 export class RolesGuard implements CanActivate {

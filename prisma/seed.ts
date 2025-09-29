@@ -9,26 +9,26 @@ async function main() {
   // Create/Update Master
   const masterPass = await bcrypt.hash('master12345', 10);
   const master = await prisma.user.upsert({
-    where: { username: 'master' },
+    where: { username: 'master@4paws' },
     update: { passwordHash: masterPass, accountRole: AccountRole.MASTER },
     create: {
-      username: 'master',
+      username: 'master@4paws',
       passwordHash: masterPass,
       accountRole: AccountRole.MASTER,
       staff: { create: { name: 'Master', jobRole: JobRole.SUPERVISOR } },
     },
   });
 
-  // Create/Update Admin (mapped to SUPERVISOR)
+  // Create/Update Admin
   const adminPass = await bcrypt.hash('admin12345', 10);
   await prisma.user.upsert({
-    where: { username: 'admin' },
-    update: { passwordHash: adminPass, accountRole: AccountRole.SUPERVISOR },
+    where: { username: 'admin@4paws' },
+    update: { passwordHash: adminPass, accountRole: AccountRole.ADMIN },
     create: {
-      username: 'admin',
+      username: 'admin@4paws',
       passwordHash: adminPass,
-      accountRole: AccountRole.SUPERVISOR,
-      staff: { create: { name: 'Admin', jobRole: JobRole.SUPERVISOR } },
+      accountRole: AccountRole.ADMIN,
+      staff: { create: { name: 'Admin', jobRole: JobRole.ADMIN } },
     },
   });
 
@@ -81,7 +81,7 @@ async function main() {
   }
 
   // eslint-disable-next-line no-console
-  console.log('Seed completed. Users: master/master12345, admin/admin12345');
+  console.log('Seed completed. Users: master@4paws/master12345, admin@4paws/admin12345');
 }
 
 main()

@@ -136,11 +136,11 @@ export class ExaminationsService {
           for (const c of mix.components ?? []) {
             const product = await tx.product.findUnique({ where: { id: c.productId } });
             if (!product) continue;
-            const innerQty = Number(c.quantity);
-            if (!Number.isFinite(innerQty) || innerQty <= 0) continue;
-            const denom = product.unitContentAmount ? Number(product.unitContentAmount) : undefined;
-            const primaryQty = denom && denom > 0 ? innerQty / denom : innerQty;
-            await tx.inventory.create({ data: { productId: product.id, quantity: `-${primaryQty}`, type: 'OUT', note: `Quick Mix #${mu.id}` } });
+          const innerQty = Number(c.quantity);
+          if (!Number.isFinite(innerQty) || innerQty <= 0) continue;
+          // Treat quantities as base unit directly (no inner/denom conversion)
+          const primaryQty = innerQty;
+          await tx.inventory.create({ data: { productId: product.id, quantity: `-${primaryQty}`, type: 'OUT', note: `Quick Mix #${mu.id}` } });
           }
           console.log(`Added mix: ${uniqueName}`);
         }
@@ -288,8 +288,8 @@ export class ExaminationsService {
             if (!product) continue;
             const innerQty = Number(c.quantity);
             if (!Number.isFinite(innerQty) || innerQty <= 0) continue;
-            const denom = product.unitContentAmount ? Number(product.unitContentAmount) : undefined;
-            const primaryQty = denom && denom > 0 ? innerQty / denom : innerQty;
+            // Treat quantities as base unit directly
+            const primaryQty = innerQty;
             await tx.inventory.create({ data: { productId: product.id, quantity: `-${primaryQty}`, type: 'OUT', note: `Quick Mix #${mu.id}` } });
           }
           console.log(`(update) Added mix: ${uniqueName}`);

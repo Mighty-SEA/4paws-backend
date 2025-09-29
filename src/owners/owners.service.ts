@@ -47,8 +47,51 @@ export class OwnersService {
   }
 
   async deleteOwner(id: number) {
-    // Optionally cascade delete pets via Prisma relations or handle manually
-    return this.prisma.owner.delete({ where: { id } });
+    // FORCE DELETE: remove all related data (bookings, bookingPets, exams, visits, usages, etc.)
+    return this.prisma.$transaction(async (tx) => {
+      // Collect all bookings for this owner
+      const bookings = await tx.booking.findMany({ where: { ownerId: id }, select: { id: true } });
+      const bookingIds = bookings.map((b) => b.id);
+
+      if (bookingIds.length) {
+        // Collect bookingPet ids for those bookings
+        const bookingPets = await tx.bookingPet.findMany({ where: { bookingId: { in: bookingIds } }, select: { id: true } });
+        const bookingPetIds = bookingPets.map((bp) => bp.id);
+
+        if (bookingPetIds.length) {
+          const examinations = await tx.examination.findMany({ where: { bookingPetId: { in: bookingPetIds } }, select: { id: true } });
+          const visits = await tx.visit.findMany({ where: { bookingPetId: { in: bookingPetIds } }, select: { id: true } });
+          const examIds = examinations.map((e) => e.id);
+          const visitIds = visits.map((v) => v.id);
+
+          if (examIds.length) {
+            await tx.productUsage.deleteMany({ where: { examinationId: { in: examIds } } });
+          }
+          if (visitIds.length) {
+            await tx.productUsage.deleteMany({ where: { visitId: { in: visitIds } } });
+          }
+
+          await tx.visit.deleteMany({ where: { bookingPetId: { in: bookingPetIds } } });
+          await tx.mixUsage.deleteMany({ where: { bookingPetId: { in: bookingPetIds } } });
+          await tx.dailyCharge.deleteMany({ where: { bookingPetId: { in: bookingPetIds } } });
+          await tx.examination.deleteMany({ where: { bookingPetId: { in: bookingPetIds } } });
+          await tx.bookingPet.deleteMany({ where: { id: { in: bookingPetIds } } });
+        }
+
+        // Delete booking-level records
+        await tx.bookingItem.deleteMany({ where: { bookingId: { in: bookingIds } } });
+        await tx.deposit.deleteMany({ where: { bookingId: { in: bookingIds } } });
+        await tx.payment.deleteMany({ where: { bookingId: { in: bookingIds } } });
+        await tx.booking.deleteMany({ where: { id: { in: bookingIds } } });
+      }
+
+      // Delete pets owned by this owner (if any remain not referenced by bookingPets after above removals)
+      await tx.pet.deleteMany({ where: { ownerId: id } });
+
+      // Finally, delete owner
+      await tx.owner.delete({ where: { id } });
+      return { ok: true };
+    });
   }
 
   async listPets(params: { q?: string; page?: number; pageSize?: number }) {
@@ -102,14 +145,33 @@ export class OwnersService {
     return this.prisma.pet.update({ where: { id: petId }, data });
   }
 
-  deletePet(petId: number) {
-    return this.prisma.pet
-      .delete({ where: { id: petId } })
-      .catch((err) => {
-        // Most likely due to FK constraint (pet linked to bookings/exams/visits)
-        const message = typeof err?.message === 'string' ? err.message : undefined;
-        throw new BadRequestException(message ?? 'Pet memiliki relasi aktif, tidak dapat dihapus');
-      });
+  async deletePet(petId: number) {
+    // FORCE DELETE PET and its medical records/visits/usages
+    return this.prisma.$transaction(async (tx) => {
+      const bookingPets = await tx.bookingPet.findMany({ where: { petId }, select: { id: true } });
+      const bookingPetIds = bookingPets.map((bp) => bp.id);
+      if (bookingPetIds.length) {
+        const examinations = await tx.examination.findMany({ where: { bookingPetId: { in: bookingPetIds } }, select: { id: true } });
+        const visits = await tx.visit.findMany({ where: { bookingPetId: { in: bookingPetIds } }, select: { id: true } });
+        const examIds = examinations.map((e) => e.id);
+        const visitIds = visits.map((v) => v.id);
+
+        if (examIds.length) {
+          await tx.productUsage.deleteMany({ where: { examinationId: { in: examIds } } });
+        }
+        if (visitIds.length) {
+          await tx.productUsage.deleteMany({ where: { visitId: { in: visitIds } } });
+        }
+        await tx.visit.deleteMany({ where: { bookingPetId: { in: bookingPetIds } } });
+        await tx.mixUsage.deleteMany({ where: { bookingPetId: { in: bookingPetIds } } });
+        await tx.dailyCharge.deleteMany({ where: { bookingPetId: { in: bookingPetIds } } });
+        await tx.examination.deleteMany({ where: { bookingPetId: { in: bookingPetIds } } });
+        await tx.bookingPet.deleteMany({ where: { id: { in: bookingPetIds } } });
+      }
+
+      await tx.pet.delete({ where: { id: petId } });
+      return { ok: true };
+    });
   }
 
   async getOwnerDetail(id: number) {

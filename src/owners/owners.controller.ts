@@ -14,7 +14,7 @@ export class OwnersController {
     return this.owners.createOwner(dto);
   }
 
-  @AllowRoles('MASTER')
+  @AllowRoles('MASTER', 'ADMIN')
   @Put(':id')
   updateOwner(
     @Param('id', ParseIntPipe) id: number,
@@ -55,7 +55,7 @@ export class OwnersController {
     return this.owners.createPetForOwner({ ownerId, ...dto });
   }
 
-  @AllowRoles('MASTER')
+  @AllowRoles('MASTER', 'ADMIN')
   @Put('pets/:petId')
   updatePet(
     @Param('petId', ParseIntPipe) petId: number,
