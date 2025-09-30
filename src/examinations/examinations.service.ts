@@ -255,8 +255,27 @@ export class ExaminationsService {
         },
       });
       console.log('Updated examination:', exam.id);
-      // Append products (do not delete existing usages)
-      if (dto.products?.length) {
+      // Replace existing product usages when products array is provided (edit mode)
+      if (Array.isArray(dto.products)) {
+        // Revert previous usages back to inventory and delete them
+        const existing = await tx.productUsage.findMany({ where: { examinationId: exam.id } });
+        for (const pu of existing) {
+          const prod = await tx.product.findFirst({ where: { name: pu.productName } });
+          if (prod) {
+            const qtyStr = String(pu.quantity ?? '0');
+            await tx.inventory.create({
+              data: {
+                productId: prod.id,
+                quantity: qtyStr,
+                type: 'ADJUSTMENT',
+                note: `Revert usage exam #${exam.id} (edit)`,
+              },
+            });
+          }
+        }
+        await tx.productUsage.deleteMany({ where: { examinationId: exam.id } });
+
+        // Insert new usages
         for (const p of dto.products) {
           const product = p.productId
             ? await tx.product.findUnique({ where: { id: Number(p.productId) } })
@@ -268,8 +287,10 @@ export class ExaminationsService {
           await tx.productUsage.create({
             data: { examinationId: exam.id, productName: product.name, quantity, unitPrice: product.price },
           });
-          await tx.inventory.create({ data: { productId: product.id, quantity: `-${quantity}`, type: 'OUT', note: `Usage exam #${exam.id}` } });
-          console.log(`(update) Added product: ${product.name}, qty: ${quantity}`);
+          await tx.inventory.create({
+            data: { productId: product.id, quantity: `-${quantity}`, type: 'OUT', note: `Usage exam #${exam.id}` },
+          });
+          console.log(`(update) Replaced product: ${product.name}, qty: ${quantity}`);
         }
       }
       // Append mixes (create temporary mix and usage)

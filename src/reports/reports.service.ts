@@ -233,6 +233,7 @@ export class ReportsService {
           bookingPet: {
             include: { booking: { include: { owner: true, serviceType: { include: { service: true } } } }, pet: true },
           },
+          productUsages: true,
           doctor: true,
           paravet: true,
           admin: true,
@@ -260,12 +261,27 @@ export class ReportsService {
       bookingPetId?: number;
       ownerName?: string;
       petName?: string;
+      species?: string;
+      ownerEmail?: string;
       serviceName?: string;
       doctorName?: string;
       paravetName?: string;
       adminName?: string;
       groomerName?: string;
       detail?: string;
+      weight?: string;
+      temperature?: string;
+      anamnesa?: string;
+      notes?: string;
+      diagnosis?: string;
+      prognosis?: string;
+      therapy?: string;
+      outlet?: string;
+      transactionNo?: string;
+      deliveryGuy?: string;
+      returnDate?: string;
+      returnService?: string;
+      informedConsent?: string;
     };
 
     const examItems: HandlingItem[] = (exams as any[]).map((e) => {
@@ -277,13 +293,33 @@ export class ReportsService {
         bookingId: booking?.id ?? bp?.bookingId,
         bookingPetId: bp?.id,
         ownerName: booking?.owner?.name,
+        ownerEmail: booking?.owner?.email,
         petName: bp?.pet?.name,
+        species: bp?.pet?.species,
         serviceName: booking?.serviceType?.name,
         doctorName: e.doctor?.name,
         paravetName: e.paravet?.name,
         adminName: e.admin?.name,
         groomerName: e.groomer?.name,
         detail: e.diagnosis ?? e.notes ?? undefined,
+        weight: e.weight != null ? String(e.weight) : undefined,
+        temperature: e.temperature != null ? String(e.temperature) : undefined,
+        anamnesa: e.chiefComplaint ?? undefined,
+        notes: e.additionalNotes ?? e.notes ?? undefined,
+        diagnosis: e.diagnosis ?? undefined,
+        prognosis: e.prognosis ?? undefined,
+        therapy: Array.isArray(e.productUsages)
+          ? (e.productUsages as any[])
+              .map((pu) => `${String(pu.productName ?? '')} x ${Number(pu.quantity ?? 0)}`)
+              .filter((s) => s.trim().length)
+              .join(', ')
+          : undefined,
+        outlet: undefined,
+        transactionNo: booking?.id ? String(booking.id) : undefined,
+        deliveryGuy: undefined,
+        returnDate: booking?.endDate ? new Date(booking.endDate).toISOString().slice(0, 10) : undefined,
+        returnService: booking?.serviceType?.service?.name,
+        informedConsent: undefined,
       };
     });
 
