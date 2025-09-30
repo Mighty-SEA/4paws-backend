@@ -31,9 +31,14 @@ export class UsersController {
 
   @AllowRoles('MASTER', 'SUPERVISOR')
   @Put(':id')
-  update(@Param('id') id: string, @Body() body: Partial<{ passwordHash: string; accountRole: string }>) {
+  async update(
+    @Param('id') id: string,
+    @Body() body: Partial<{ password?: string; accountRole?: string }>,
+  ) {
     const data: any = {};
-    if (body.passwordHash !== undefined) data.passwordHash = String(body.passwordHash);
+    if (body.password !== undefined) {
+      data.passwordHash = await bcrypt.hash(String(body.password), 10);
+    }
     if (body.accountRole !== undefined) data.accountRole = body.accountRole as any;
     return this.users.update(Number(id), data);
   }
