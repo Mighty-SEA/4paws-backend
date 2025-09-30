@@ -17,7 +17,30 @@ export class BookingsService {
         include: {
           owner: true,
           serviceType: { include: { service: true } },
-          pets: { include: { pet: true, examinations: { include: { doctor: true, paravet: true, admin: true, groomer: true } } } },
+          pets: { 
+            include: { 
+              pet: true, 
+              examinations: { 
+                include: { 
+                  doctor: true, 
+                  paravet: true, 
+                  admin: true, 
+                  groomer: true,
+                  productUsages: true
+                } 
+              },
+              visits: {
+                include: {
+                  productUsages: true,
+                  mixUsages: { include: { mixProduct: true } }
+                }
+              },
+              mixUsages: { 
+                where: { visitId: null }, 
+                include: { mixProduct: true } 
+              }
+            } 
+          },
           deposits: true,
         },
       }),
