@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateBankAccountDto, UpdateBankAccountDto, UpdateStoreSettingDto } from './dto';
+import { CreateBankAccountDto, UpdateBankAccountDto, UpdateStoreSettingDto, CreatePetSpeciesDto, UpdatePetSpeciesDto } from './dto';
 
 @Injectable()
 export class SettingsService {
@@ -69,6 +69,38 @@ export class SettingsService {
 
   async deleteBankAccount(id: number) {
     return this.prisma.bankAccount.delete({ where: { id } });
+  }
+
+  // Pet Species CRUD
+  async listPetSpecies() {
+    return this.prisma.petSpecies.findMany({ orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }] });
+  }
+
+  async createPetSpecies(dto: CreatePetSpeciesDto) {
+    return this.prisma.petSpecies.create({
+      data: {
+        kind: dto.kind,
+        name: dto.name,
+        isActive: dto.isActive ?? true,
+        sortOrder: dto.sortOrder ?? 0,
+      },
+    });
+  }
+
+  async updatePetSpecies(id: number, dto: UpdatePetSpeciesDto) {
+    return this.prisma.petSpecies.update({
+      where: { id },
+      data: {
+        kind: dto.kind ?? undefined,
+        name: dto.name ?? undefined,
+        isActive: dto.isActive ?? undefined,
+        sortOrder: dto.sortOrder ?? undefined,
+      },
+    });
+  }
+
+  async deletePetSpecies(id: number) {
+    return this.prisma.petSpecies.delete({ where: { id } });
   }
 }
 

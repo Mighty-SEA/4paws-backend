@@ -440,4 +440,18 @@ model BankAccount {
   @@index([storeSettingId, isActive, sortOrder])
 }
 
+// Pet Species master data
+model PetSpecies {
+  id        Int      @id @default(autoincrement())
+  kind      String   // e.g., Jenis: Anjing, Kucing
+  name      String   // e.g., Spesies: Anjing, Kucing
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, sortOrder])
+}
+
 

@@ -16,3 +16,13 @@ export type CreateBankAccountDto = {
 export type UpdateBankAccountDto = Partial<CreateBankAccountDto>
 
 
+// Pet Species
+export type CreatePetSpeciesDto = {
+  kind: string
+  name: string
+  isActive?: boolean
+  sortOrder?: number
+}
+
+export type UpdatePetSpeciesDto = Partial<CreatePetSpeciesDto>
+

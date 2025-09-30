@@ -1,6 +1,7 @@
 import { PrismaClient, AccountRole, JobRole } from '@prisma/client';
 import { seedOwnersAndPets } from './seeds/owners-pets';
 import { seedProductsAndMix } from './seeds/products-mix';
+import { seedPetSpecies } from './seeds/pet-species';
 import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -79,6 +80,9 @@ async function main() {
   if (!existingSetting) {
     await prisma.storeSetting.create({ data: { address: 'Alamat toko', phone: '08123456789', name: '4PAWS Petcare' } });
   }
+
+  // Seed Pet Species
+  await seedPetSpecies(prisma);
 
   // eslint-disable-next-line no-console
   console.log('Seed completed. Users: master@4paws/master12345, admin@4paws/admin12345');
