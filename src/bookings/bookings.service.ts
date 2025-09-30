@@ -26,7 +26,7 @@ export class BookingsService {
     return { items, total, page, pageSize };
   }
 
-  async createBooking(dto: { ownerId: number; serviceTypeId: number; petIds: number[]; startDate?: string; endDate?: string }) {
+  async createBooking(dto: { ownerId: number; serviceTypeId: number; petIds?: number[]; startDate?: string; endDate?: string }) {
     const startDate = dto.startDate ? new Date(dto.startDate) : undefined;
     const endDate = dto.endDate ? new Date(dto.endDate) : undefined;
     return this.prisma.$transaction(async (tx) => {

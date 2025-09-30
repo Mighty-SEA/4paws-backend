@@ -8,8 +8,9 @@ export class CreateBookingDto {
   @IsInt()
   serviceTypeId!: number;
 
+  @IsOptional()
   @IsArray()
-  petIds!: number[];
+  petIds?: number[];
 
   @IsOptional()
   @IsDateString()
