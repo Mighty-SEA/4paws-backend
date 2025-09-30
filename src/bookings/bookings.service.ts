@@ -67,10 +67,27 @@ export class BookingsService {
           data: dto.petIds.map((pid) => ({ bookingId: booking.id, petId: pid })),
         });
       } else if (st && st.service && st.service.name.toLowerCase() === 'petshop') {
-        // Auto-create placeholder pet for Petshop transactions to keep downstream flows working
-        const placeholder = await tx.pet.create({
-          data: { ownerId: dto.ownerId, name: 'Petshop', species: 'Petshop', breed: 'Petshop', birthdate: new Date() },
+        // Reuse a single placeholder pet per owner for Petshop transactions
+        // This avoids creating many duplicate pets named "Petshop" on repeated orders
+        const existingPlaceholder = await tx.pet.findFirst({
+          where: {
+            ownerId: dto.ownerId,
+            name: 'Petshop',
+            species: 'Petshop',
+            breed: 'Petshop',
+          },
         });
+        const placeholder =
+          existingPlaceholder ??
+          (await tx.pet.create({
+            data: {
+              ownerId: dto.ownerId,
+              name: 'Petshop',
+              species: 'Petshop',
+              breed: 'Petshop',
+              birthdate: new Date(),
+            },
+          }));
         await tx.bookingPet.create({ data: { bookingId: booking.id, petId: placeholder.id } });
       }
       return booking;
