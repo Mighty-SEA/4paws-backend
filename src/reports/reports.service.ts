@@ -260,7 +260,10 @@ export class ReportsService {
       bookingPetId?: number;
       ownerName?: string;
       petName?: string;
+      // serviceName is the master Service name (e.g., Grooming, Rawat Inap)
       serviceName?: string;
+      // serviceTypeName is the specific type (e.g., Grooming Basic, Deluxe)
+      serviceTypeName?: string;
       doctorName?: string;
       paravetName?: string;
       adminName?: string;
@@ -278,7 +281,8 @@ export class ReportsService {
         bookingPetId: bp?.id,
         ownerName: booking?.owner?.name,
         petName: bp?.pet?.name,
-        serviceName: booking?.serviceType?.name,
+        serviceName: booking?.serviceType?.service?.name,
+        serviceTypeName: booking?.serviceType?.name,
         doctorName: e.doctor?.name,
         paravetName: e.paravet?.name,
         adminName: e.admin?.name,
@@ -297,7 +301,8 @@ export class ReportsService {
         bookingPetId: bp?.id,
         ownerName: booking?.owner?.name,
         petName: bp?.pet?.name,
-        serviceName: booking?.serviceType?.name,
+        serviceName: booking?.serviceType?.service?.name,
+        serviceTypeName: booking?.serviceType?.name,
         doctorName: v.doctor?.name,
         paravetName: v.paravet?.name,
         adminName: v.admin?.name,
@@ -325,7 +330,8 @@ export class ReportsService {
         type: 'SERVICE',
         bookingId: it.bookingId,
         ownerName: it.booking?.owner?.name,
-        serviceName: it.serviceType?.name ?? it.booking?.serviceType?.name,
+        serviceName: it.serviceType?.service?.name ?? it.booking?.serviceType?.service?.name,
+        serviceTypeName: it.serviceType?.name ?? it.booking?.serviceType?.name,
         detail: it.role,
       } as HandlingItem;
     });
