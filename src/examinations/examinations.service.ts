@@ -61,15 +61,31 @@ export class ExaminationsService {
       throw new BadRequestException('Tidak ada data pemeriksaan yang diisi');
     }
 
-    const bp = await this.prisma.bookingPet.findFirst({
+    // Resolve context: either regular bookingPet flow or owner-level (Petshop)
+    let bp = await this.prisma.bookingPet.findFirst({
       where: { id: bookingPetId, bookingId },
-      include: { booking: { include: { serviceType: true } }, examinations: true },
+      include: { booking: { include: { serviceType: { include: { service: true } } } }, examinations: true },
     });
-    if (!bp) throw new NotFoundException('BookingPet not found for given booking');
-
-    // Batasi 1 pemeriksaan per hewan dalam booking ini
-    const alreadyExamined = bp.examinations.length > 0;
-    if (alreadyExamined) throw new BadRequestException('Pemeriksaan sudah dilakukan untuk booking ini');
+    let booking: any = bp?.booking ?? null;
+    const ownerLevel = !bp;
+    if (!bp) {
+      booking = await this.prisma.booking.findUnique({
+        where: { id: bookingId },
+        include: { serviceType: { include: { service: true } }, owner: true },
+      });
+      if (!booking) throw new NotFoundException('Booking not found');
+      const isPetshop = String(booking.serviceType?.service?.name ?? '').toLowerCase() === 'petshop';
+      if (!isPetshop) throw new NotFoundException('BookingPet not found for given booking');
+      if (booking.ownerId !== bookingPetId)
+        throw new BadRequestException('Invalid owner id for petshop examination');
+    } else {
+      // Batasi 1 pemeriksaan per hewan dalam booking ini untuk layanan non-petshop
+      const isPetshop = String(booking.serviceType?.service?.name ?? '').toLowerCase() === 'petshop';
+      if (!isPetshop) {
+        const alreadyExamined = bp.examinations.length > 0;
+        if (alreadyExamined) throw new BadRequestException('Pemeriksaan sudah dilakukan untuk booking ini');
+      }
+    }
 
     // Validasi peran dokter/paravet jika diisi
     if (dto.doctorId) {
@@ -85,20 +101,36 @@ export class ExaminationsService {
 
     return this.prisma.$transaction(async (tx) => {
       const exam = await tx.examination.create({
-        data: {
-          bookingPetId: bp.id,
-          weight: this.normalizeDecimalString(dto.weight),
-          temperature: this.normalizeDecimalString(dto.temperature),
-          notes: dto.notes,
-          chiefComplaint: dto.chiefComplaint ?? undefined,
-          additionalNotes: dto.additionalNotes ?? undefined,
-          diagnosis: dto.diagnosis ?? undefined,
-          prognosis: dto.prognosis ?? undefined,
-          doctorId: dto.doctorId ?? undefined,
-          paravetId: dto.paravetId ?? undefined,
-          adminId: dto.adminId ?? undefined,
-          groomerId: dto.groomerId ?? undefined,
-        },
+        data: ownerLevel
+          ? {
+              bookingId: booking.id,
+              ownerId: booking.ownerId,
+              weight: this.normalizeDecimalString(dto.weight),
+              temperature: this.normalizeDecimalString(dto.temperature),
+              notes: dto.notes,
+              chiefComplaint: dto.chiefComplaint ?? undefined,
+              additionalNotes: dto.additionalNotes ?? undefined,
+              diagnosis: dto.diagnosis ?? undefined,
+              prognosis: dto.prognosis ?? undefined,
+              doctorId: dto.doctorId ?? undefined,
+              paravetId: dto.paravetId ?? undefined,
+              adminId: dto.adminId ?? undefined,
+              groomerId: dto.groomerId ?? undefined,
+            }
+          : {
+              bookingPetId: bp!.id,
+              weight: this.normalizeDecimalString(dto.weight),
+              temperature: this.normalizeDecimalString(dto.temperature),
+              notes: dto.notes,
+              chiefComplaint: dto.chiefComplaint ?? undefined,
+              additionalNotes: dto.additionalNotes ?? undefined,
+              diagnosis: dto.diagnosis ?? undefined,
+              prognosis: dto.prognosis ?? undefined,
+              doctorId: dto.doctorId ?? undefined,
+              paravetId: dto.paravetId ?? undefined,
+              adminId: dto.adminId ?? undefined,
+              groomerId: dto.groomerId ?? undefined,
+            },
       });
 
       console.log('Created examination:', exam.id);
@@ -132,36 +164,48 @@ export class ExaminationsService {
           await tx.mixComponent.createMany({
             data: (mix.components ?? []).map((c) => ({ mixProductId: tempMix.id, productId: c.productId, quantityBase: c.quantity })),
           });
-          const mu = await tx.mixUsage.create({ data: { bookingPetId: bp.id, mixProductId: tempMix.id, quantity: '1', unitPrice: tempMix.price } });
-          for (const c of mix.components ?? []) {
-            const product = await tx.product.findUnique({ where: { id: c.productId } });
-            if (!product) continue;
-          const innerQty = Number(c.quantity);
-          if (!Number.isFinite(innerQty) || innerQty <= 0) continue;
-          // Treat quantities as base unit directly (no inner/denom conversion)
-          const primaryQty = innerQty;
-          await tx.inventory.create({ data: { productId: product.id, quantity: `-${primaryQty}`, type: 'OUT', note: `Quick Mix #${mu.id}` } });
+          if (!ownerLevel) {
+            const mu = await tx.mixUsage.create({ data: { bookingPetId: bp!.id, mixProductId: tempMix.id, quantity: '1', unitPrice: tempMix.price } });
+            for (const c of mix.components ?? []) {
+              const product = await tx.product.findUnique({ where: { id: c.productId } });
+              if (!product) continue;
+              const innerQty = Number(c.quantity);
+              if (!Number.isFinite(innerQty) || innerQty <= 0) continue;
+              const primaryQty = innerQty;
+              await tx.inventory.create({ data: { productId: product.id, quantity: `-${primaryQty}`, type: 'OUT', note: `Quick Mix #${mu.id}` } });
+            }
+          } else {
+            // For owner-level petshop, record as a single product usage named by mix
+            await tx.productUsage.create({
+              data: {
+                examinationId: exam.id,
+                productName: uniqueName,
+                quantity: '1',
+                unitPrice: tempMix.price,
+              },
+            });
           }
           console.log(`Added mix: ${uniqueName}`);
         }
       }
 
       // If this is a per-day service (pet hotel/rawat inap), after first exam mark booking as waiting to deposit
-      const pricePerDay = bp.booking.serviceType?.pricePerDay;
-      console.log(`[ExaminationService] Checking pricePerDay for booking ${bp.bookingId}:`, pricePerDay, typeof pricePerDay);
-      
+      const pricePerDay = (bp ? bp.booking.serviceType?.pricePerDay : booking?.serviceType?.pricePerDay) ?? undefined;
+      const targetBookingId = bp ? bp.bookingId : booking!.id;
+      console.log(`[ExaminationService] Checking pricePerDay for booking ${targetBookingId}:`, pricePerDay, typeof pricePerDay);
+
       if (pricePerDay) {
-        console.log(`[ExaminationService] Updating booking ${bp.bookingId} status to WAITING_TO_DEPOSIT`);
-        const updatedBooking = await tx.booking.update({ 
-          where: { id: bp.bookingId }, 
-          data: { proceedToAdmission: true, status: 'WAITING_TO_DEPOSIT' as any } 
+        console.log(`[ExaminationService] Updating booking ${targetBookingId} status to WAITING_TO_DEPOSIT`);
+        const updatedBooking = await tx.booking.update({
+          where: { id: targetBookingId },
+          data: { proceedToAdmission: true, status: 'WAITING_TO_DEPOSIT' as any },
         });
-        console.log(`[ExaminationService] Booking ${bp.bookingId} updated successfully:`, {
+        console.log(`[ExaminationService] Booking ${targetBookingId} updated successfully:`, {
           status: updatedBooking.status,
-          proceedToAdmission: updatedBooking.proceedToAdmission
+          proceedToAdmission: updatedBooking.proceedToAdmission,
         });
       } else {
-        console.log(`[ExaminationService] Booking ${bp.bookingId} is not per-day service, keeping status as is`);
+        console.log(`[ExaminationService] Booking ${targetBookingId} is not per-day service, keeping status as is`);
       }
 
       const result = await tx.examination.findUnique({

@@ -54,6 +54,12 @@ export class BookingsService {
     const endDate = dto.endDate ? new Date(dto.endDate) : undefined;
     return this.prisma.$transaction(async (tx) => {
       const st = await tx.serviceType.findUnique({ where: { id: dto.serviceTypeId }, include: { service: true } });
+      const isPetshop = Boolean(
+        st && (
+          String(st.service?.name ?? '').toLowerCase() === 'petshop' ||
+          String(st.name ?? '').toLowerCase() === 'petshop'
+        ),
+      );
       const booking = await tx.booking.create({
         data: {
           ownerId: dto.ownerId,
@@ -62,16 +68,11 @@ export class BookingsService {
           endDate,
         },
       });
-      if (dto.petIds?.length) {
+      // For non-petshop services, attach selected pets (if any)
+      if (!isPetshop && dto.petIds?.length) {
         await tx.bookingPet.createMany({
           data: dto.petIds.map((pid) => ({ bookingId: booking.id, petId: pid })),
         });
-      } else if (st && st.service && st.service.name.toLowerCase() === 'petshop') {
-        // Auto-create placeholder pet for Petshop transactions to keep downstream flows working
-        const placeholder = await tx.pet.create({
-          data: { ownerId: dto.ownerId, name: 'Petshop', species: 'Petshop', breed: 'Petshop', birthdate: new Date() },
-        });
-        await tx.bookingPet.create({ data: { bookingId: booking.id, petId: placeholder.id } });
       }
       return booking;
     });
@@ -84,6 +85,7 @@ export class BookingsService {
         owner: true,
         serviceType: { include: { service: true } },
         items: { include: { serviceType: { include: { service: true } } } },
+        examinations: { include: { productUsages: true, doctor: true, paravet: true, admin: true, groomer: true } },
         pets: {
           include: {
             pet: true,

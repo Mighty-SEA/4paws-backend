@@ -11,6 +11,7 @@ export class BillingService {
       include: {
         serviceType: true,
         items: { include: { serviceType: true } },
+        examinations: { include: { productUsages: true } },
         pets: {
           include: {
             visits: { include: { productUsages: true, mixUsages: { include: { mixProduct: true } } } },
@@ -111,6 +112,18 @@ export class BillingService {
         ),
       0,
     );
+    // Owner-level examinations (Petshop without pets)
+    const totalOwnerExamProducts = (booking.examinations ?? []).reduce((sum, ex) => {
+      const sub = (ex.productUsages ?? []).reduce((ps, pu) => {
+        const itemSubtotal = Number(pu.quantity) * Number(pu.unitPrice ?? nameToPrice.get(pu.productName) ?? 0);
+        const discountPercent = Number(pu.discountPercent ?? 0);
+        const discountAmount = Number(pu.discountAmount ?? 0);
+        const discountByPercent = discountPercent > 0 ? Math.round((itemSubtotal * discountPercent) / 100) : 0;
+        const effectiveDiscount = discountPercent > 0 ? discountByPercent : discountAmount;
+        return ps + Math.max(0, itemSubtotal - effectiveDiscount);
+      }, 0);
+      return sum + sub;
+    }, 0);
     const totalVisitProducts = booking.pets.reduce(
       (sum, bp) =>
         sum +
@@ -149,7 +162,7 @@ export class BillingService {
       0,
     );
     const totalDailyCharges = booking.pets.reduce((sum, bp) => sum + bp.dailyCharges.reduce((cs, c) => cs + Number(c.amount ?? 0), 0), 0);
-    const totalProducts = totalExamProducts + totalVisitProducts + totalStandaloneMix;
+    const totalProducts = totalExamProducts + totalVisitProducts + totalStandaloneMix + totalOwnerExamProducts;
     // Total baru = subtotal jasa (PRIMARY + ADDON) + products + daily charges
     const total = serviceSubtotal + totalProducts + totalDailyCharges;
     const depositSum = booking.deposits.reduce((s, d) => s + Number(d.amount), 0);
