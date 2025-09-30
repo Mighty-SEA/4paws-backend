@@ -44,6 +44,7 @@ async function main() {
     { name: 'Sterilisasi', types: [{ name: 'Steril Betina', price: '750000' }, { name: 'Steril Jantan', price: '500000' }] },
     { name: 'Rawat Inap', types: [{ name: 'Kandang Standar', price: '0', pricePerDay: '75000' }] },
     { name: 'Pet Hotel', types: [{ name: 'Kamar Reguler', price: '0', pricePerDay: '60000' }] },
+    { name: 'Petshop', types: [{ name: 'Petshop', price: '0', pricePerDay: null }] },
   ];
 
   for (const s of serviceDefs) {

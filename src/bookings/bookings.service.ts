@@ -30,6 +30,7 @@ export class BookingsService {
     const startDate = dto.startDate ? new Date(dto.startDate) : undefined;
     const endDate = dto.endDate ? new Date(dto.endDate) : undefined;
     return this.prisma.$transaction(async (tx) => {
+      const st = await tx.serviceType.findUnique({ where: { id: dto.serviceTypeId }, include: { service: true } });
       const booking = await tx.booking.create({
         data: {
           ownerId: dto.ownerId,
@@ -42,6 +43,12 @@ export class BookingsService {
         await tx.bookingPet.createMany({
           data: dto.petIds.map((pid) => ({ bookingId: booking.id, petId: pid })),
         });
+      } else if (st && st.service && st.service.name.toLowerCase() === 'petshop') {
+        // Auto-create placeholder pet for Petshop transactions to keep downstream flows working
+        const placeholder = await tx.pet.create({
+          data: { ownerId: dto.ownerId, name: 'Petshop', species: 'Petshop', breed: 'Petshop', birthdate: new Date() },
+        });
+        await tx.bookingPet.create({ data: { bookingId: booking.id, petId: placeholder.id } });
       }
       return booking;
     });
