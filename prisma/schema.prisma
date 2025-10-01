@@ -389,7 +389,6 @@ model Payment {
 model Expense {
   id          Int       @id @default(autoincrement())
   expenseDate DateTime  @default(now())
-  category    String
   description String?
   amount      Decimal   @db.Decimal(12,2)
 
