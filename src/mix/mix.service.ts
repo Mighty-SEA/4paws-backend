@@ -155,6 +155,34 @@ export class MixService {
       return { ok: true, mixId: tempMix.id };
     });
   }
+
+  async deleteQuickMix(bookingId: number, bookingPetId: number, mixUsageId: number) {
+    const bp = await this.prisma.bookingPet.findFirst({ where: { id: bookingPetId, bookingId } });
+    if (!bp) throw new NotFoundException('BookingPet not found');
+    const usage = await this.prisma.mixUsage.findFirst({ where: { id: mixUsageId, bookingPetId: bp.id } });
+    if (!usage) throw new NotFoundException('Mix usage not found');
+    const mix = await this.prisma.mixProduct.findUnique({ where: { id: usage.mixProductId }, include: { components: true } });
+    if (!mix) throw new NotFoundException('Mix product not found');
+
+    return this.prisma.$transaction(async (tx) => {
+      // Revert inventory OUT for this usage by creating IN adjustments per component
+      for (const comp of mix.components) {
+        const product = await tx.product.findUnique({ where: { id: comp.productId } });
+        if (!product) continue;
+        const denom = product.unitContentAmount ? Number(product.unitContentAmount) : undefined;
+        const innerQty = Number(comp.quantityBase) * Number(usage.quantity ?? 1);
+        const primaryQty = denom && denom > 0 ? innerQty / denom : innerQty;
+        await tx.inventory.create({
+          data: { productId: product.id, quantity: String(primaryQty), type: 'ADJUSTMENT', note: `Revert Mix #${usage.id}` },
+        });
+      }
+      // Delete usage and temp mix product/components
+      await tx.mixUsage.delete({ where: { id: usage.id } });
+      await tx.mixComponent.deleteMany({ where: { mixProductId: mix.id } });
+      await tx.mixProduct.delete({ where: { id: mix.id } });
+      return { ok: true };
+    });
+  }
 }
 
 

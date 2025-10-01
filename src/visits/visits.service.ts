@@ -125,6 +125,50 @@ export class VisitsService {
 
     return visit;
   }
+
+  async update(
+    bookingId: number,
+    bookingPetId: number,
+    visitId: number,
+    dto: {
+      visitDate?: string;
+      weight?: string;
+      temperature?: string;
+      notes?: string;
+      doctorId?: number;
+      paravetId?: number;
+      adminId?: number;
+      groomerId?: number;
+      urine?: string;
+      defecation?: string;
+      appetite?: string;
+      condition?: string;
+      symptoms?: string;
+    },
+  ) {
+    const visit = await this.prisma.visit.findFirst({ where: { id: visitId, bookingPetId } });
+    if (!visit) throw new NotFoundException('Visit not found');
+    const bp = await this.prisma.bookingPet.findFirst({ where: { id: bookingPetId, bookingId } });
+    if (!bp) throw new NotFoundException('BookingPet not found for given booking');
+    return this.prisma.visit.update({
+      where: { id: visitId },
+      data: {
+        visitDate: dto.visitDate ? new Date(dto.visitDate) : undefined,
+        weight: dto.weight ?? undefined,
+        temperature: dto.temperature ?? undefined,
+        notes: dto.notes ?? undefined,
+        doctorId: dto.doctorId ?? undefined,
+        paravetId: dto.paravetId ?? undefined,
+        adminId: dto.adminId ?? undefined,
+        groomerId: dto.groomerId ?? undefined,
+        urine: dto.urine ?? undefined,
+        defecation: dto.defecation ?? undefined,
+        appetite: dto.appetite ?? undefined,
+        condition: dto.condition ?? undefined,
+        symptoms: dto.symptoms ?? undefined,
+      },
+    });
+  }
 }
 
 

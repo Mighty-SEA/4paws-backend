@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { MixService } from './mix.service';
 
@@ -40,6 +40,15 @@ export class MixController {
     },
   ) {
     return this.mix.createQuickMix(Number(bookingId), Number(bookingPetId), dto);
+  }
+
+  @Delete('bookings/:bookingId/pets/:bookingPetId/quick-mix')
+  deleteQuickMix(
+    @Param('bookingId') bookingId: string,
+    @Param('bookingPetId') bookingPetId: string,
+    @Query('id') id: string,
+  ) {
+    return this.mix.deleteQuickMix(Number(bookingId), Number(bookingPetId), Number(id));
   }
 }
 
