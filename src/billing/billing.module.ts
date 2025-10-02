@@ -8,6 +8,7 @@ import { BillingController } from './billing.controller';
   imports: [PrismaModule, AuthModule],
   providers: [BillingService],
   controllers: [BillingController],
+  exports: [BillingService],
 })
 export class BillingModule {}
 
