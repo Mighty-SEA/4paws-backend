@@ -8,6 +8,11 @@ import { ProductsService } from './products.service';
 export class ProductsController {
   constructor(private readonly products: ProductsService) {}
 
+  @Get('products/with-inventory')
+  listWithInventory() {
+    return this.products.listProductsWithInventory();
+  }
+
   @Get('products')
   list() {
     return this.products.listProducts();

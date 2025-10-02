@@ -9,6 +9,31 @@ export class ProductsService {
     return this.prisma.product.findMany({ orderBy: { name: 'asc' } });
   }
 
+  async listProductsWithInventory() {
+    const products = await this.prisma.product.findMany({ orderBy: { name: 'asc' } });
+    
+    // Get all inventory data in one query instead of multiple
+    const allInventory = await this.prisma.inventory.findMany({
+      select: {
+        productId: true,
+        quantity: true,
+      },
+    });
+
+    // Build availability map
+    const availabilityMap = new Map<number, number>();
+    for (const inv of allInventory) {
+      const current = availabilityMap.get(inv.productId) ?? 0;
+      availabilityMap.set(inv.productId, current + Number(inv.quantity));
+    }
+
+    // Attach availability to each product
+    return products.map((product) => ({
+      ...product,
+      available: availabilityMap.get(product.id) ?? 0,
+    }));
+  }
+
   createProduct(dto: { name: string; unit: string; price?: string; unitContentAmount?: string; unitContentName?: string }) {
     return this.prisma.product.create({
       data: {
