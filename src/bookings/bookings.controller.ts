@@ -63,6 +63,25 @@ export class BookingsController {
     return this.bookings.deleteBooking(Number(id));
   }
 
+  // Standalone Product Usages per BookingPet (no Visit/Exam)
+  @Post(':id/pets/:bookingPetId/product-usages')
+  addProductUsage(
+    @Param('id') id: string,
+    @Param('bookingPetId') bookingPetId: string,
+    @Body() dto: { productId?: number; productName?: string; quantity: string; unitPrice?: string }
+  ) {
+    return this.bookings.addStandaloneProductUsage(Number(id), Number(bookingPetId), dto);
+  }
+
+  @Delete(':id/pets/:bookingPetId/product-usages/:usageId')
+  deleteProductUsage(
+    @Param('id') id: string,
+    @Param('bookingPetId') bookingPetId: string,
+    @Param('usageId') usageId: string,
+  ) {
+    return this.bookings.deleteStandaloneProductUsage(Number(id), Number(bookingPetId), Number(usageId));
+  }
+
   // Repair endpoints
   @Get('repair/problematic')
   getProblematicBookings() {

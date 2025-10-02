@@ -16,6 +16,7 @@ export class BillingService {
             visits: { include: { productUsages: true, mixUsages: { include: { mixProduct: true } } } },
             examinations: { include: { productUsages: true, doctor: true, paravet: true, admin: true, groomer: true } },
             mixUsages: { where: { visitId: null }, include: { mixProduct: true } },
+            productUsages: true,
             dailyCharges: true,
           },
         },

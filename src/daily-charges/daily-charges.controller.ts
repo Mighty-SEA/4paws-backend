@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { DailyChargesService } from './daily-charges.service';
 
@@ -22,6 +22,21 @@ export class DailyChargesController {
   @Post('generate-today')
   generateToday(@Param('bookingId') bookingId: string, @Param('bookingPetId') bookingPetId: string) {
     return this.svc.generateToday(Number(bookingId), Number(bookingPetId));
+  }
+
+  @Post('generate-range')
+  generateRange(
+    @Param('bookingId') bookingId: string,
+    @Param('bookingPetId') bookingPetId: string,
+    @Query('start') start: string,
+    @Query('end') end: string,
+  ) {
+    return this.svc.generateRange(Number(bookingId), Number(bookingPetId), start, end);
+  }
+
+  @Post('generate-until-checkout')
+  generateUntilCheckout(@Param('bookingId') bookingId: string, @Param('bookingPetId') bookingPetId: string) {
+    return this.svc.generateUntilCheckout(Number(bookingId), Number(bookingPetId));
   }
 }
 

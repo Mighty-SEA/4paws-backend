@@ -189,6 +189,7 @@ model BookingPet {
   visits       Visit[]
   dailyCharges DailyCharge[]
   mixUsages    MixUsage[]
+  productUsages ProductUsage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -226,6 +227,7 @@ model ProductUsage {
   id             Int         @id @default(autoincrement())
   examinationId  Int?
   visitId        Int?
+  bookingPetId   Int?
   productName    String
   quantity       Decimal     @db.Decimal(12,2)
   unitPrice      Decimal?    @db.Decimal(12,2)
@@ -234,6 +236,7 @@ model ProductUsage {
 
   examination    Examination? @relation(fields: [examinationId], references: [id])
   visit          Visit?       @relation(fields: [visitId], references: [id])
+  bookingPet     BookingPet?  @relation(fields: [bookingPetId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

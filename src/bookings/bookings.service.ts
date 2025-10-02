@@ -38,7 +38,8 @@ export class BookingsService {
               mixUsages: { 
                 where: { visitId: null }, 
                 include: { mixProduct: true } 
-              }
+              },
+              productUsages: true
             } 
           },
           deposits: true,
@@ -136,6 +137,7 @@ export class BookingsService {
               },
             },
             mixUsages: { include: { mixProduct: { include: { components: { include: { product: true } } } } } },
+            productUsages: true,
           },
         },
       },
@@ -238,6 +240,7 @@ export class BookingsService {
             visits: true,
             dailyCharges: true,
             mixUsages: true,
+            productUsages: true,
           },
         },
         items: true,
@@ -262,6 +265,9 @@ export class BookingsService {
         await tx.productUsage.deleteMany({ where: { visitId: { in: visitIds } } });
       }
       if (bookingPetIds.length) {
+        await tx.productUsage.deleteMany({ where: { bookingPetId: { in: bookingPetIds } } });
+      }
+      if (bookingPetIds.length) {
         await tx.visit.deleteMany({ where: { bookingPetId: { in: bookingPetIds } } });
         await tx.mixUsage.deleteMany({ where: { bookingPetId: { in: bookingPetIds } } });
         await tx.dailyCharge.deleteMany({ where: { bookingPetId: { in: bookingPetIds } } });
@@ -272,6 +278,53 @@ export class BookingsService {
       await tx.deposit.deleteMany({ where: { bookingId: id } });
       await tx.payment.deleteMany({ where: { bookingId: id } });
       await tx.booking.delete({ where: { id } });
+      return { ok: true };
+    });
+  }
+
+  // Standalone Product Usages
+  async addStandaloneProductUsage(
+    bookingId: number,
+    bookingPetId: number,
+    dto: { productId?: number; productName?: string; quantity: string; unitPrice?: string },
+  ) {
+    const bp = await this.prisma.bookingPet.findFirst({ where: { id: bookingPetId, bookingId }, include: { booking: true } });
+    if (!bp) throw new NotFoundException('BookingPet not found for given booking');
+    // Resolve product by id or name
+    const product = dto.productId
+      ? await this.prisma.product.findUnique({ where: { id: dto.productId } })
+      : dto.productName
+      ? await this.prisma.product.findFirst({ where: { name: dto.productName } })
+      : null;
+    if (!product) throw new NotFoundException('Product not found');
+
+    const quantityStr = String(dto.quantity).trim();
+    const unitPriceStr = dto.unitPrice != null ? String(dto.unitPrice).trim() : String(product.price);
+
+    return this.prisma.$transaction(async (tx) => {
+      const usage = await tx.productUsage.create({
+        data: {
+          bookingPetId: bp.id,
+          productName: product.name,
+          quantity: quantityStr,
+          unitPrice: unitPriceStr,
+        },
+      });
+      // Inventory OUT in primary unit
+      await tx.inventory.create({ data: { productId: product.id, quantity: `-${quantityStr}` as any, type: 'OUT', note: `Standalone product usage #${usage.id}` } });
+      return usage;
+    });
+  }
+
+  async deleteStandaloneProductUsage(bookingId: number, bookingPetId: number, usageId: number) {
+    const usage = await this.prisma.productUsage.findFirst({ where: { id: usageId, bookingPetId } });
+    if (!usage) throw new NotFoundException('Product usage not found');
+    const product = await this.prisma.product.findFirst({ where: { name: usage.productName } });
+    return this.prisma.$transaction(async (tx) => {
+      if (product) {
+        await tx.inventory.create({ data: { productId: product.id, quantity: String(usage.quantity), type: 'ADJUSTMENT', note: `Revert standalone usage #${usage.id}` } });
+      }
+      await tx.productUsage.delete({ where: { id: usage.id } });
       return { ok: true };
     });
   }
