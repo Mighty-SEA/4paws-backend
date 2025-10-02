@@ -195,9 +195,27 @@ export class OwnersService {
           orderBy: { createdAt: 'desc' },
         },
         visits: {
-          include: { productUsages: true, mixUsages: { include: { mixProduct: true } }, doctor: true, paravet: true, admin: true, groomer: true },
+          include: {
+            productUsages: true,
+            mixUsages: {
+              include: {
+                mixProduct: {
+                  include: {
+                    components: { include: { product: true } },
+                  },
+                },
+              },
+            },
+            doctor: true,
+            paravet: true,
+            admin: true,
+            groomer: true,
+          },
           orderBy: { visitDate: 'desc' },
         },
+        // Standalone (booking-pet level) usages not tied to a visit/exam
+        productUsages: true,
+        mixUsages: { include: { mixProduct: { include: { components: { include: { product: true } } } } } },
       },
       orderBy: { createdAt: 'desc' },
     });
