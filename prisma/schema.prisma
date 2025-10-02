@@ -270,7 +270,7 @@ model Inventory {
 // Backend 11: Mix Products
 model MixProduct {
   id          Int            @id @default(autoincrement())
-  name        String         @unique
+  name        String
   description String?
   price       Decimal        @default(0) @db.Decimal(12,2)
   components  MixComponent[]

@@ -98,13 +98,10 @@ export class MixService {
 
     return this.prisma.$transaction(async (tx) => {
       // Create temporary mix product (tidak disimpan sebagai template)
-      // Ensure unique name to avoid constraint errors on MixProduct.name (@unique)
       const baseName = dto.mixName || `Quick Mix - ${new Date().toISOString().slice(0, 10)}`;
-      const nameSuffix = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-      const uniqueName = `${baseName} #${nameSuffix}`;
       const tempMix = await tx.mixProduct.create({
         data: {
-          name: uniqueName,
+          name: baseName,
           description: 'Quick Mix - Temporary',
           price: priceStr,
         },

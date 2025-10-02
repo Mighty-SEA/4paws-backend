@@ -125,10 +125,9 @@ export class ExaminationsService {
       if (dto.mixes?.length) {
         for (const mix of dto.mixes) {
           const baseName = mix.mixName || `Quick Mix - ${new Date().toISOString().slice(0, 10)}`;
-          const uniqueName = `${baseName} #${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
           const priceStr = mix.price != null ? String(mix.price).trim().replace(/,/g, '.') : '0';
 
-          const tempMix = await tx.mixProduct.create({ data: { name: uniqueName, description: 'Quick Mix - Temporary', price: priceStr } });
+          const tempMix = await tx.mixProduct.create({ data: { name: baseName, description: 'Quick Mix - Temporary', price: priceStr } });
           await tx.mixComponent.createMany({
             data: (mix.components ?? []).map((c) => ({ mixProductId: tempMix.id, productId: c.productId, quantityBase: c.quantity })),
           });
@@ -142,7 +141,7 @@ export class ExaminationsService {
           const primaryQty = innerQty;
           await tx.inventory.create({ data: { productId: product.id, quantity: `-${primaryQty}`, type: 'OUT', note: `Quick Mix #${mu.id}` } });
           }
-          console.log(`Added mix: ${uniqueName}`);
+          console.log(`Added mix: ${baseName}`);
         }
       }
 
@@ -297,9 +296,8 @@ export class ExaminationsService {
       if (dto.mixes?.length) {
         for (const mix of dto.mixes) {
           const baseName = mix.mixName || `Quick Mix - ${new Date().toISOString().slice(0, 10)}`;
-          const uniqueName = `${baseName} #${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
           const priceStr = mix.price != null ? String(mix.price).trim().replace(/,/g, '.') : '0';
-          const tempMix = await tx.mixProduct.create({ data: { name: uniqueName, description: 'Quick Mix - Temporary', price: priceStr } });
+          const tempMix = await tx.mixProduct.create({ data: { name: baseName, description: 'Quick Mix - Temporary', price: priceStr } });
           await tx.mixComponent.createMany({
             data: (mix.components ?? []).map((c) => ({ mixProductId: tempMix.id, productId: c.productId, quantityBase: c.quantity })),
           });
@@ -313,7 +311,7 @@ export class ExaminationsService {
             const primaryQty = innerQty;
             await tx.inventory.create({ data: { productId: product.id, quantity: `-${primaryQty}`, type: 'OUT', note: `Quick Mix #${mu.id}` } });
           }
-          console.log(`(update) Added mix: ${uniqueName}`);
+          console.log(`(update) Added mix: ${baseName}`);
         }
       }
       return tx.examination.findUnique({

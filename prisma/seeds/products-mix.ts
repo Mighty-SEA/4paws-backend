@@ -115,11 +115,17 @@ export async function seedProductsAndMix(prisma: PrismaClient): Promise<void> {
   ];
 
   for (const mix of mixProductDefs) {
-    const mixProduct = await prisma.mixProduct.upsert({
-      where: { name: mix.name },
-      update: { description: mix.description ?? null, price: mix.price },
-      create: { name: mix.name, description: mix.description ?? null, price: mix.price },
-    });
+    let mixProduct = await prisma.mixProduct.findFirst({ where: { name: mix.name } });
+    if (mixProduct) {
+      mixProduct = await prisma.mixProduct.update({
+        where: { id: mixProduct.id },
+        data: { description: mix.description ?? null, price: mix.price },
+      });
+    } else {
+      mixProduct = await prisma.mixProduct.create({
+        data: { name: mix.name, description: mix.description ?? null, price: mix.price },
+      });
+    }
 
     await prisma.mixComponent.deleteMany({ where: { mixProductId: mixProduct.id } });
 
