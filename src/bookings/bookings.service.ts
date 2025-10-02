@@ -144,6 +144,60 @@ export class BookingsService {
     });
   }
 
+  // Lightweight summary for booking detail page header
+  getBookingSummary(id: number) {
+    return this.prisma.booking.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        status: true,
+        startDate: true,
+        endDate: true,
+        proceedToAdmission: true,
+        primaryDiscountPercent: true,
+        primaryDiscountAmount: true,
+        owner: { select: { id: true, name: true } },
+        serviceType: {
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            pricePerDay: true,
+            service: { select: { id: true, name: true } },
+          },
+        },
+        items: {
+          select: {
+            id: true,
+            role: true,
+            quantity: true,
+            unitPrice: true,
+            startDate: true,
+            endDate: true,
+            discountPercent: true,
+            discountAmount: true,
+            serviceType: {
+              select: {
+                id: true,
+                name: true,
+                price: true,
+                pricePerDay: true,
+                service: { select: { name: true } },
+              },
+            },
+          },
+        },
+        pets: {
+          select: {
+            id: true,
+            pet: { select: { id: true, name: true } },
+            examinations: { select: { id: true } },
+          },
+        },
+      },
+    });
+  }
+
   planAdmission(id: number) {
     return this.prisma.booking.update({ where: { id }, data: { proceedToAdmission: true, status: 'WAITING_TO_DEPOSIT' as any } });
   }

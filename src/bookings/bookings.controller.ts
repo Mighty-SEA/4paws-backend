@@ -17,6 +17,11 @@ export class BookingsController {
     return this.bookings.createBooking(dto);
   }
 
+  @Get(':id/summary')
+  getSummary(@Param('id') id: string) {
+    return this.bookings.getBookingSummary(Number(id));
+  }
+
   @Get(':id')
   getOne(@Param('id') id: string) {
     return this.bookings.getBooking(Number(id));
