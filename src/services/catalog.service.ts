@@ -42,6 +42,12 @@ export class CatalogService {
       },
     });
   }
+
+  async deleteServiceType(_currentRole: string, id: number) {
+    return this.prisma.serviceType.delete({
+      where: { id },
+    });
+  }
 }
 
 

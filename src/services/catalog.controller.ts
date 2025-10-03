@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { IsInt, IsOptional, IsString } from 'class-validator';
 import { CatalogService } from './catalog.service';
@@ -58,6 +58,12 @@ export class CatalogController {
   updateServiceType(@Req() req: any, @Param('id') id: string, @Body() dto: UpdateServiceTypeDto) {
     const accountRole: string = (req.user as any)?.accountRole;
     return this.catalog.updateServiceType(accountRole, Number(id), dto);
+  }
+
+  @Delete('service-types/:id')
+  deleteServiceType(@Req() req: any, @Param('id') id: string) {
+    const accountRole: string = (req.user as any)?.accountRole;
+    return this.catalog.deleteServiceType(accountRole, Number(id));
   }
 }
 
