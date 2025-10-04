@@ -21,9 +21,10 @@ import { DraftsModule } from './drafts/drafts.module';
 // import { ExpensesModule } from './expenses/expenses.module';
 import { SettingsModule } from './settings/settings.module';
 import { ExpensesModule } from './expenses/expenses.module';
+import { UpdateModule } from './update/update.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, OwnersModule, CatalogModule, BookingsModule, ExaminationsModule, ProductsModule, VisitsModule, DepositsModule, DailyChargesModule, BillingModule, MixModule, PaymentsModule, ReportsModule, StaffModule, UsersModule, DraftsModule, SettingsModule, ExpensesModule],
+  imports: [PrismaModule, AuthModule, OwnersModule, CatalogModule, BookingsModule, ExaminationsModule, ProductsModule, VisitsModule, DepositsModule, DailyChargesModule, BillingModule, MixModule, PaymentsModule, ReportsModule, StaffModule, UsersModule, DraftsModule, SettingsModule, ExpensesModule, UpdateModule],
   controllers: [AppController],
   providers: [AppService],
 })
