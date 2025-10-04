@@ -10,13 +10,12 @@ export class OwnersService {
   async listOwners(params: { q?: string; page?: number; pageSize?: number }) {
     const page = Math.max(1, params.page ?? 1);
     const pageSize = Math.min(100, Math.max(1, params.pageSize ?? 10));
-    const insensitive: Prisma.QueryMode = 'insensitive';
     const where: Prisma.OwnerWhereInput = params.q
       ? {
           OR: [
-            { name: { contains: params.q, mode: insensitive } },
-            { phone: { contains: params.q, mode: insensitive } },
-            { address: { contains: params.q, mode: insensitive } },
+            { name: { contains: params.q } },
+            { phone: { contains: params.q } },
+            { address: { contains: params.q } },
           ],
         }
       : {};
@@ -97,14 +96,13 @@ export class OwnersService {
   async listPets(params: { q?: string; page?: number; pageSize?: number }) {
     const page = Math.max(1, params.page ?? 1);
     const pageSize = Math.min(100, Math.max(1, params.pageSize ?? 10));
-    const insensitive: Prisma.QueryMode = 'insensitive';
     const where: Prisma.PetWhereInput = params.q
       ? {
           OR: [
-            { name: { contains: params.q, mode: insensitive } },
-            { species: { contains: params.q, mode: insensitive } },
-            { breed: { contains: params.q, mode: insensitive } },
-            { owner: { name: { contains: params.q, mode: insensitive } } },
+            { name: { contains: params.q } },
+            { species: { contains: params.q } },
+            { breed: { contains: params.q } },
+            { owner: { name: { contains: params.q } } },
           ],
         }
       : {};
