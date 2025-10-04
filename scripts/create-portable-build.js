@@ -68,7 +68,9 @@ const essentialFiles = [
   'package.json',
   'pnpm-lock.yaml',
   'nest-cli.json',
-  'ecosystem.config.js'
+  'ecosystem.config.js',
+  'tsconfig.json',
+  'tsconfig.build.json'
 ];
 
 for (const file of essentialFiles) {
