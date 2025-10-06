@@ -20,8 +20,10 @@ async function bootstrap() {
     optionsSuccessStatus: 204,
   });
   const port = Number(process.env.PORT ?? 3000);
-  await app.listen(port);
+  const host = process.env.HOST ?? '0.0.0.0';
+  await app.listen(port, host);
   const url = await app.getUrl();
   Logger.log(`Server running at ${url}`, 'Bootstrap');
+  Logger.log(`Accessible via IP at http://${host}:${port}`, 'Bootstrap');
 }
 bootstrap();
