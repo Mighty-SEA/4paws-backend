@@ -326,4 +326,169 @@ export class ExaminationsService {
       });
     });
   }
+
+  async updateItems(
+    bookingId: number,
+    bookingPetId: number,
+    dto: {
+      meta?: {
+        weight?: string;
+        temperature?: string;
+        notes?: string;
+        chiefComplaint?: string;
+        additionalNotes?: string;
+        diagnosis?: string;
+        prognosis?: string;
+        doctorId?: number;
+        paravetId?: number;
+        adminId?: number;
+        groomerId?: number;
+      };
+      singles?: { productId: number; quantity: string }[];
+      mixes?: { label?: string; price?: string; components: { productId: number; quantity: string }[] }[];
+    }
+  ) {
+    console.log('=== UPDATE ITEMS EXAMINATION ===');
+    console.log('BookingId:', bookingId, 'BookingPetId:', bookingPetId);
+    console.log('DTO:', JSON.stringify(dto, null, 2));
+
+    const bp = await this.prisma.bookingPet.findFirst({
+      where: { id: bookingPetId, bookingId },
+      include: { examinations: { orderBy: { createdAt: 'desc' } } },
+    });
+    if (!bp) throw new NotFoundException('BookingPet not found for given booking');
+    const latest = bp.examinations[0];
+    if (!latest) {
+      throw new NotFoundException('No existing examination found to update');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      // Update examination metadata
+      const exam = await tx.examination.update({
+        where: { id: latest.id },
+        data: {
+          weight: dto.meta?.weight ? this.normalizeDecimalString(dto.meta.weight) : undefined,
+          temperature: dto.meta?.temperature ? this.normalizeDecimalString(dto.meta.temperature) : undefined,
+          notes: dto.meta?.notes ?? undefined,
+          chiefComplaint: dto.meta?.chiefComplaint ?? undefined,
+          additionalNotes: dto.meta?.additionalNotes ?? undefined,
+          diagnosis: dto.meta?.diagnosis ?? undefined,
+          prognosis: dto.meta?.prognosis ?? undefined,
+          doctorId: dto.meta?.doctorId ?? undefined,
+          paravetId: dto.meta?.paravetId ?? undefined,
+          adminId: dto.meta?.adminId ?? undefined,
+          groomerId: dto.meta?.groomerId ?? undefined,
+        },
+      });
+      console.log('Updated examination metadata:', exam.id);
+
+      // Replace product usages (singles)
+      if (Array.isArray(dto.singles)) {
+        // Revert previous usages back to inventory and delete them
+        const existing = await tx.productUsage.findMany({ where: { examinationId: exam.id } });
+        for (const pu of existing) {
+          const prod = await tx.product.findFirst({ where: { name: pu.productName } });
+          if (prod) {
+            const qtyStr = String(pu.quantity ?? '0');
+            await tx.inventory.create({
+              data: {
+                productId: prod.id,
+                quantity: qtyStr,
+                type: 'ADJUSTMENT',
+                note: `Revert usage exam #${exam.id} (items edit)`,
+              },
+            });
+          }
+        }
+        await tx.productUsage.deleteMany({ where: { examinationId: exam.id } });
+
+        // Insert new usages
+        for (const p of dto.singles) {
+          const product = await tx.product.findUnique({ where: { id: Number(p.productId) } });
+          if (!product) continue;
+          const quantity = this.normalizeDecimalString(p.quantity) ?? '0';
+          await tx.productUsage.create({
+            data: { examinationId: exam.id, productName: product.name, quantity, unitPrice: product.price },
+          });
+          await tx.inventory.create({
+            data: { productId: product.id, quantity: `-${quantity}`, type: 'OUT', note: `Usage exam #${exam.id}` },
+          });
+          console.log(`(updateItems) Replaced single product: ${product.name}, qty: ${quantity}`);
+        }
+      }
+
+      // Replace mixes
+      if (Array.isArray(dto.mixes)) {
+        // Delete existing mix usages for this bookingPet (that are not tied to visits)
+        const existingMixUsages = await tx.mixUsage.findMany({
+          where: { bookingPetId: bp.id, visitId: null },
+          include: { mixProduct: { include: { components: true } } },
+        });
+
+        for (const mu of existingMixUsages) {
+          // Revert inventory
+          for (const c of mu.mixProduct.components) {
+            const product = await tx.product.findUnique({ where: { id: c.productId } });
+            if (!product) continue;
+            const innerQty = Number(c.quantityBase);
+            if (!Number.isFinite(innerQty) || innerQty <= 0) continue;
+            await tx.inventory.create({
+              data: {
+                productId: product.id,
+                quantity: String(innerQty),
+                type: 'ADJUSTMENT',
+                note: `Revert mix usage #${mu.id} (items edit)`,
+              },
+            });
+          }
+          // Delete the mix usage
+          await tx.mixUsage.delete({ where: { id: mu.id } });
+          // Delete the temporary mix product and its components
+          await tx.mixComponent.deleteMany({ where: { mixProductId: mu.mixProductId } });
+          await tx.mixProduct.delete({ where: { id: mu.mixProductId } });
+        }
+
+        // Create new mixes
+        for (const mix of dto.mixes) {
+          const baseName = mix.label || `Quick Mix - ${new Date().toISOString().slice(0, 10)}`;
+          const priceStr = mix.price != null ? String(mix.price).trim().replace(/,/g, '.') : '0';
+          const tempMix = await tx.mixProduct.create({
+            data: { name: baseName, description: 'Quick Mix - Temporary', price: priceStr },
+          });
+          await tx.mixComponent.createMany({
+            data: (mix.components ?? []).map((c) => ({
+              mixProductId: tempMix.id,
+              productId: c.productId,
+              quantityBase: c.quantity,
+            })),
+          });
+          const mu = await tx.mixUsage.create({
+            data: { bookingPetId: bp.id, mixProductId: tempMix.id, quantity: '1', unitPrice: tempMix.price },
+          });
+          for (const c of mix.components ?? []) {
+            const product = await tx.product.findUnique({ where: { id: c.productId } });
+            if (!product) continue;
+            const innerQty = Number(c.quantity);
+            if (!Number.isFinite(innerQty) || innerQty <= 0) continue;
+            const primaryQty = innerQty;
+            await tx.inventory.create({
+              data: { productId: product.id, quantity: `-${primaryQty}`, type: 'OUT', note: `Quick Mix #${mu.id}` },
+            });
+          }
+          console.log(`(updateItems) Added mix: ${baseName}`);
+        }
+      }
+
+      return tx.examination.findUnique({
+        where: { id: exam.id },
+        include: {
+          productUsages: true,
+          doctor: true,
+          paravet: true,
+          admin: true,
+          groomer: true,
+        },
+      });
+    });
+  }
 }
