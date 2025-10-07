@@ -78,14 +78,23 @@ for (const file of essentialFiles) {
     fs.copyFileSync(file, path.join(portableDir, file));
     console.log(`✅ Copied: ${file}`);
   } else {
-    console.log(`⏭️  Skipping: ${file} (optional)`);
+    if (file === 'pnpm-lock.yaml') {
+      console.log(`⚠️  Warning: ${file} not found!`);
+      console.log('   ❌ CRITICAL: pnpm-lock.yaml is required for consistent builds!');
+      console.log('   💡 Run "pnpm install" to generate lockfile');
+      process.exit(1);  // Exit if lockfile missing
+    } else {
+      console.log(`⏭️  Skipping: ${file} (optional)`);
+    }
   }
 }
 
-// Copy .env.example if exists (not .env for security)
+// Copy .env.example if exists (optional - agent will handle env setup)
 if (fs.existsSync('.env.example')) {
   fs.copyFileSync('.env.example', path.join(portableDir, '.env.example'));
   console.log('✅ Copied: .env.example');
+} else {
+  console.log('⏭️  Skipping: .env.example (optional - agent will handle env setup)');
 }
 
 // Read package.json to detect port
