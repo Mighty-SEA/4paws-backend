@@ -131,7 +131,7 @@ export class ExaminationsService {
           await tx.mixComponent.createMany({
             data: (mix.components ?? []).map((c) => ({ mixProductId: tempMix.id, productId: c.productId, quantityBase: c.quantity })),
           });
-          const mu = await tx.mixUsage.create({ data: { bookingPetId: bp.id, mixProductId: tempMix.id, quantity: '1', unitPrice: tempMix.price } });
+          const mu = await tx.mixUsage.create({ data: { bookingPetId: bp.id, mixProductId: tempMix.id, quantity: '1', unitPrice: tempMix.price, examinationId: exam.id } });
           for (const c of mix.components ?? []) {
             const product = await tx.product.findUnique({ where: { id: c.productId } });
             if (!product) continue;
@@ -301,7 +301,7 @@ export class ExaminationsService {
           await tx.mixComponent.createMany({
             data: (mix.components ?? []).map((c) => ({ mixProductId: tempMix.id, productId: c.productId, quantityBase: c.quantity })),
           });
-          const mu = await tx.mixUsage.create({ data: { bookingPetId: bp.id, mixProductId: tempMix.id, quantity: '1', unitPrice: tempMix.price } });
+          const mu = await tx.mixUsage.create({ data: { bookingPetId: bp.id, mixProductId: tempMix.id, quantity: '1', unitPrice: tempMix.price, examinationId: exam.id } });
           for (const c of mix.components ?? []) {
             const product = await tx.product.findUnique({ where: { id: c.productId } });
             if (!product) continue;
@@ -419,9 +419,9 @@ export class ExaminationsService {
 
       // Replace mixes
       if (Array.isArray(dto.mixes)) {
-        // Delete existing mix usages for this bookingPet (that are not tied to visits)
+        // Delete existing mix usages for this examination only
         const existingMixUsages = await tx.mixUsage.findMany({
-          where: { bookingPetId: bp.id, visitId: null },
+          where: { examinationId: exam.id },
           include: { mixProduct: { include: { components: true } } },
         });
 
@@ -463,7 +463,7 @@ export class ExaminationsService {
             })),
           });
           const mu = await tx.mixUsage.create({
-            data: { bookingPetId: bp.id, mixProductId: tempMix.id, quantity: '1', unitPrice: tempMix.price },
+            data: { bookingPetId: bp.id, mixProductId: tempMix.id, quantity: '1', unitPrice: tempMix.price, examinationId: exam.id },
           });
           for (const c of mix.components ?? []) {
             const product = await tx.product.findUnique({ where: { id: c.productId } });

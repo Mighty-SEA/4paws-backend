@@ -121,9 +121,17 @@ export class BookingsService {
                   { adminId: { not: null } },
                   { groomerId: { not: null } },
                   { productUsages: { some: {} } },
+                  { mixUsages: { some: {} } },
                 ],
               },
-              include: { productUsages: true, doctor: true, paravet: true, admin: true, groomer: true },
+              include: { 
+                productUsages: true, 
+                mixUsages: { include: { mixProduct: { include: { components: { include: { product: true } } } } } },
+                doctor: true, 
+                paravet: true, 
+                admin: true, 
+                groomer: true 
+              },
               orderBy: { createdAt: 'desc' },
             },
             visits: {
@@ -383,6 +391,7 @@ export class BookingsService {
       return { ok: true };
     });
   }
+
 }
 
 
