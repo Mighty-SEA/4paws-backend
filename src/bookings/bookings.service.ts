@@ -43,6 +43,7 @@ export class BookingsService {
             } 
           },
           deposits: true,
+          payments: true,
         },
       }),
       this.prisma.booking.count(),
